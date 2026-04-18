@@ -1,0 +1,877 @@
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.1);
+  --border-md: rgba(0,0,0,0.18);
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9b9b9b;
+  --accent: #3C3489;
+  --accent-light: #EEEDFE;
+  --accent-mid: #7F77DD;
+  --success: #3B6D11;
+  --success-bg: #EAF3DE;
+  --warning: #854F0B;
+  --warning-bg: #FAEEDA;
+  --danger: #A32D2D;
+  --danger-bg: #FCEBEB;
+  --info: #185FA5;
+  --info-bg: #E6F1FB;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+html, body { height: 100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--surface); border-right: 0.5px solid var(--border); padding: 1.5rem 0; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
+.main { margin-left: 220px; padding: 2rem; flex: 1; max-width: 1200px; }
+.logo { padding: 0 1.25rem 1.5rem; border-bottom: 0.5px solid var(--border); margin-bottom: 1rem; }
+.logo-title { font-size: 18px; font-weight: 500; color: var(--accent); }
+.logo-sub { font-size: 12px; color: var(--text-faint); }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 0.6rem 1.25rem; cursor: pointer; font-size: 14px; color: var(--text-muted); border-left: 2px solid transparent; transition: all 0.15s; }
+.nav-item:hover { background: var(--accent-light); color: var(--accent); }
+.nav-item.active { background: var(--accent-light); color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
+.nav-section { font-size: 10px; font-weight: 500; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem 0.25rem; }
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; }
+.page-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 2rem; }
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.5rem; }
+.card-title { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.metric-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+.metric-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.metric-value { font-size: 24px; font-weight: 500; }
+.metric-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+.badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--bg); color: var(--text-muted); border: 0.5px solid var(--border); }
+.progress-wrap { background: var(--bg); border-radius: 99px; height: 6px; width: 100%; }
+.progress-bar { height: 6px; border-radius: 99px; }
+.progress-green { background: #639922; }
+.progress-amber { background: #EF9F27; }
+.progress-red { background: #E24B4A; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+input, select, textarea { width: 100%; padding: 8px 10px; border: 0.5px solid var(--border-md); border-radius: var(--radius); font-size: 14px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.15s; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent-mid); box-shadow: 0 0 0 3px rgba(127,119,221,0.12); }
+textarea { resize: vertical; min-height: 70px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); border: 0.5px solid var(--border-md); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover { background: #534AB7; border-color: #534AB7; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; margin-top: 1.5rem; flex-wrap: wrap; }
+.alert { padding: 0.75rem 1rem; border-radius: var(--radius); font-size: 13px; margin-bottom: 0.75rem; }
+.alert-warning { background: var(--warning-bg); color: var(--warning); border: 0.5px solid #FAC775; }
+.alert-danger { background: var(--danger-bg); color: var(--danger); border: 0.5px solid #F7C1C1; }
+.alert-success { background: var(--success-bg); color: var(--success); border: 0.5px solid #C0DD97; }
+.alert-info { background: var(--info-bg); color: var(--info); border: 0.5px solid #B5D4F4; }
+.tabs { display: flex; border-bottom: 0.5px solid var(--border); margin-bottom: 1.5rem; }
+.tab { padding: 0.5rem 1rem; font-size: 13px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: all 0.15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+#toast { position: fixed; bottom: 2rem; right: 2rem; background: #1a1a1a; color: white; padding: 0.75rem 1.25rem; border-radius: var(--radius); font-size: 13px; opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none; }
+#toast.show { opacity: 1; }
+.loading { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; padding: 2rem; justify-content: center; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.empty-state { text-align: center; padding: 3rem; color: var(--text-faint); font-size: 14px; }
+.batch-line { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; position: relative; }
+.remove-line { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-faint); font-size: 18px; line-height: 1; padding: 2px 6px; }
+.remove-line:hover { color: var(--danger); }
+.weeks-bar { display: flex; align-items: center; gap: 8px; }
+.weeks-num { font-size: 12px; color: var(--text-muted); min-width: 55px; }
+.alert-badge { margin-left: auto; background: var(--danger); color: white; font-size: 10px; padding: 1px 6px; border-radius: 99px; display: none; }
+</style>
+
+<div id="toast"></div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">Playbook</div>
+      <div class="logo-sub">Art of Play</div>
+    </div>
+    <nav>
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" id="nav-alerts" onclick="showPage('alerts',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5 5 0 0 1 5 5v3l1 2H2l1-2V6a5 5 0 0 1 5-5z"/><path d="M6 13a2 2 0 0 0 4 0"/></svg>
+        Alerts
+        <span id="alert-badge" class="alert-badge"></span>
+      </div>
+      <div class="nav-section">Inventory</div>
+      <div class="nav-item" id="nav-inventory" onclick="showPage('inventory',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1"/><path d="M5 4V3a3 3 0 0 1 6 0v1"/></svg>
+        Stock Levels
+      </div>
+      <div class="nav-item" id="nav-batches" onclick="showPage('batches',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+        Batch Orders
+      </div>
+      <div class="nav-item" id="nav-consignment" onclick="showPage('consignment',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8l4-4 4 4 4-4"/><path d="M1 13h14"/></svg>
+        Consignment
+      </div>
+      <div class="nav-section">Sales</div>
+      <div class="nav-item" id="nav-sales" onclick="showPage('sales',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12L5 7l3 3 3-4 3 2"/></svg>
+        Log Sales
+      </div>
+      <div class="nav-item" id="nav-performance" onclick="showPage('performance',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Performance
+      </div>
+      <div class="nav-section">Catalog</div>
+      <div class="nav-item" id="nav-products" onclick="showPage('products',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M8 5v6"/></svg>
+        Products
+      </div>
+      <div class="nav-section">Settings</div>
+      <div class="nav-item" id="nav-settings" onclick="showPage('settings',this)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5L5 11M11 5l1.5-1.5"/></svg>
+        Settings
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Overview of inventory and sales performance</div>
+      <div id="dash-alerts"></div>
+      <div class="metrics-grid" id="dash-metrics"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Stock status by SKU</div><div class="table-wrap" id="dash-stock"></div></div>
+        <div class="card"><div class="card-title">Top sellers (90-day)</div><div id="dash-topsellers"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Channel breakdown (90-day)</div><div id="dash-channels"></div></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="page-alerts" class="page">
+      <div class="page-title">Reorder Alerts</div>
+      <div class="page-sub">SKUs approaching stockout based on 90-day sell-through rate</div>
+      <div id="alerts-container"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="page-inventory" class="page">
+      <div class="page-title">Stock Levels</div>
+      <div class="page-sub">Current inventory with sell-through rates and days to stockout</div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <select id="inv-brand-filter" onchange="renderInventory()" style="width:160px;"><option value="">All brands</option></select>
+        <select id="inv-status-filter" onchange="renderInventory()" style="width:150px;"><option value="">All status</option><option value="ok">Healthy</option><option value="warning">6-week alert</option><option value="danger">4-week alert</option><option value="out">Out of stock</option></select>
+      </div>
+      <div class="card"><div class="table-wrap" id="inv-table"></div></div>
+    </div>
+
+    <!-- BATCH ORDERS -->
+    <div id="page-batches" class="page">
+      <div class="page-title">Batch Orders</div>
+      <div class="page-sub">Record incoming stock with purchase costs and FX rates</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('batches',0,this)">Log New Batch</div>
+        <div class="tab" onclick="switchTab('batches',1,this)">Batch History</div>
+      </div>
+      <div id="batches-tc-0" class="tab-content active">
+        <div class="card" style="max-width:700px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Batch ID</label><input type="text" id="b-id" placeholder="e.g. BATCH-2026-04"/></div>
+            <div class="form-group"><label>Date Received</label><input type="date" id="b-date"/></div>
+            <div class="form-group"><label>Currency</label><select id="b-currency"><option>USD</option><option>CHF</option><option>AUD</option><option>EUR</option><option>GBP</option></select></div>
+            <div class="form-group"><label>FX Rate (to THB)</label><input type="number" id="b-fx" placeholder="e.g. 34.5" step="0.01"/></div>
+            <div class="form-group full"><label>Total Shipping Cost (THB)</label><input type="number" id="b-shipping" placeholder="e.g. 12500"/></div>
+          </div>
+          <div style="margin-top:1.25rem;">
+            <div class="section-header">
+              <label style="font-size:13px;font-weight:500;color:var(--text-muted);">SKUs in this batch</label>
+              <button class="btn btn-sm" onclick="addBatchLine()">+ Add SKU</button>
+            </div>
+            <div id="batch-lines"></div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="submitBatch()">Save Batch</button>
+            <button class="btn" onclick="clearBatchForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="batches-tc-1" class="tab-content">
+        <div class="card"><div class="table-wrap" id="batch-history"></div></div>
+      </div>
+    </div>
+
+    <!-- CONSIGNMENT -->
+    <div id="page-consignment" class="page">
+      <div class="page-title">Consignment</div>
+      <div class="page-sub">Track stock sent to consignees</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('consignment',0,this)">Send Stock</div>
+        <div class="tab" onclick="switchTab('consignment',1,this)">Log Report</div>
+        <div class="tab" onclick="switchTab('consignment',2,this)">History</div>
+      </div>
+      <div id="consignment-tc-0" class="tab-content active">
+        <div class="card" style="max-width:560px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Date Sent</label><input type="date" id="con-date"/></div>
+            <div class="form-group"><label>Consignee Name</label><input type="text" id="con-consignee" placeholder="e.g. Happy Kids Store"/></div>
+            <div class="form-group"><label>SKU</label><select id="con-sku"></select></div>
+            <div class="form-group"><label>Units Sent</label><input type="number" id="con-units" placeholder="0" min="1"/></div>
+            <div class="form-group full"><label>Notes</label><textarea id="con-notes" rows="2"></textarea></div>
+          </div>
+          <div class="btn-group"><button class="btn btn-primary" onclick="submitConsignSend()">Send Stock</button></div>
+        </div>
+      </div>
+      <div id="consignment-tc-1" class="tab-content">
+        <div class="card" style="max-width:560px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Consignment ID</label><input type="text" id="con-report-id" placeholder="e.g. CON-001"/></div>
+            <div class="form-group"><label>Report Date</label><input type="date" id="con-report-date"/></div>
+            <div class="form-group"><label>Units Sold</label><input type="number" id="con-sold" placeholder="0" min="0"/></div>
+            <div class="form-group"><label>Units Returned</label><input type="number" id="con-returned" placeholder="0" min="0"/></div>
+          </div>
+          <div class="btn-group"><button class="btn btn-primary" onclick="submitConsignReport()">Save Report</button></div>
+        </div>
+      </div>
+      <div id="consignment-tc-2" class="tab-content">
+        <div class="card"><div class="table-wrap" id="consign-history"></div></div>
+      </div>
+    </div>
+
+    <!-- SALES -->
+    <div id="page-sales" class="page">
+      <div class="page-title">Log Sales</div>
+      <div class="page-sub">Record sales across all channels</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('sales',0,this)">Single Entry</div>
+        <div class="tab" onclick="switchTab('sales',1,this)">Batch Entry</div>
+        <div class="tab" onclick="switchTab('sales',2,this)">Sales History</div>
+      </div>
+      <div id="sales-tc-0" class="tab-content active">
+        <div class="card" style="max-width:560px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Date</label><input type="date" id="s-date"/></div>
+            <div class="form-group"><label>Channel</label><select id="s-channel"><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option><option>Other</option></select></div>
+            <div class="form-group"><label>SKU</label><select id="s-sku"></select></div>
+            <div class="form-group"><label>Units Sold</label><input type="number" id="s-units" placeholder="0" min="1"/></div>
+            <div class="form-group"><label>Price per Unit (THB)</label><input type="number" id="s-price" placeholder="0"/></div>
+            <div class="form-group"><label>Buyer / Consignee</label><input type="text" id="s-buyer" placeholder="optional"/></div>
+            <div class="form-group full"><label>Notes</label><textarea id="s-notes" rows="2"></textarea></div>
+          </div>
+          <div class="btn-group"><button class="btn btn-primary" onclick="submitSaleSingle()">Save Sale</button></div>
+        </div>
+      </div>
+      <div id="sales-tc-1" class="tab-content">
+        <div class="card" style="max-width:700px;">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Log multiple SKUs at once — ideal for end-of-week Shopee/Lazada updates.</p>
+          <div class="form-grid" style="margin-bottom:1rem;">
+            <div class="form-group"><label>Date</label><input type="date" id="bs-date"/></div>
+            <div class="form-group"><label>Channel</label><select id="bs-channel"><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Other</option></select></div>
+          </div>
+          <div id="batch-sale-lines"></div>
+          <button class="btn btn-sm" onclick="addSaleLine()" style="margin-bottom:1rem;">+ Add SKU</button>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="submitSaleBatch()">Save All</button>
+            <button class="btn" onclick="document.getElementById('batch-sale-lines').innerHTML=''">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="sales-tc-2" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:1rem;">
+          <select id="sf-channel" onchange="renderSalesHistory()" style="width:160px;"><option value="">All channels</option><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option></select>
+          <select id="sf-sku" onchange="renderSalesHistory()" style="width:200px;"><option value="">All SKUs</option></select>
+        </div>
+        <div class="card"><div class="table-wrap" id="sales-history"></div></div>
+      </div>
+    </div>
+
+    <!-- PERFORMANCE -->
+    <div id="page-performance" class="page">
+      <div class="page-title">Performance</div>
+      <div class="page-sub">Sell-through rates and margin analysis</div>
+      <div id="perf-content"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div id="page-products" class="page">
+      <div class="page-title">Products</div>
+      <div class="page-sub">Manage your SKU catalog</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('products',0,this)">All Products</div>
+        <div class="tab" onclick="switchTab('products',1,this)">Add Product</div>
+        <div class="tab" onclick="switchTab('products',2,this)">Average Costs</div>
+      </div>
+      <div id="products-tc-0" class="tab-content active">
+        <div style="display:flex;gap:8px;margin-bottom:1rem;">
+          <select id="pf-brand" onchange="renderProductList()" style="width:160px;"><option value="">All brands</option></select>
+          <select id="pf-status" onchange="renderProductList()" style="width:140px;"><option value="">All status</option><option>Active</option><option>Discontinued</option><option>Seasonal</option></select>
+        </div>
+        <div class="card"><div class="table-wrap" id="product-list"></div></div>
+      </div>
+      <div id="products-tc-1" class="tab-content">
+        <div class="card" style="max-width:560px;">
+          <div class="form-grid">
+            <div class="form-group"><label>SKU ID</label><input type="text" id="p-id" placeholder="e.g. FBT-001"/></div>
+            <div class="form-group"><label>SKU Name</label><input type="text" id="p-name" placeholder="e.g. Squigz Starter Set"/></div>
+            <div class="form-group"><label>Brand</label><select id="p-brand"></select></div>
+            <div class="form-group"><label>Category</label><input type="text" id="p-cat" placeholder="e.g. Sensory, Building"/></div>
+            <div class="form-group"><label>Unit</label><input type="text" id="p-unit" value="piece"/></div>
+            <div class="form-group"><label>Reorder Point (weeks)</label><input type="number" id="p-reorder" value="6" min="1"/></div>
+            <div class="form-group"><label>Status</label><select id="p-status"><option>Active</option><option>Seasonal</option><option>Discontinued</option></select></div>
+            <div class="form-group full"><label>Notes</label><textarea id="p-notes" rows="2"></textarea></div>
+          </div>
+          <div class="btn-group"><button class="btn btn-primary" onclick="submitProduct()">Add Product</button></div>
+        </div>
+      </div>
+      <div id="products-tc-2" class="tab-content">
+        <div class="card"><div class="card-title">Weighted average landed cost per SKU (THB)</div><div class="table-wrap" id="avg-costs"></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Playbook configuration</div>
+      <div class="card" style="max-width:560px;">
+        <div class="card-title">Connection</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Your Playbook is connected to Google Sheets via Apps Script.</p>
+        <div id="conn-status" class="alert alert-success">Connected</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyps-dvzmS0Gy0IOgeK-kxfhO5DAVVp6y75eS_U_Y4DCduXpKro3F9752BFnbAcrVCCFw/exec';
+var DB = { brands:[], products:[], batches:[], inventory:[], sales:[], consignment:[] };
+var currentPage = 'dashboard';
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show';
+  setTimeout(function(){ t.className = ''; }, 3000);
+}
+
+function fmt(n, dec) {
+  dec = dec || 0;
+  return Number(n).toLocaleString('th-TH', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+
+function fmtDate(d) {
+  if(!d) return '';
+  try { return new Date(d).toLocaleDateString('th-TH', {year:'numeric',month:'short',day:'numeric'}); } catch(e) { return d; }
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function uid(prefix) {
+  return prefix + '-' + Date.now().toString(36).toUpperCase();
+}
+
+function apiGet(sheet, cb) {
+  var cbName = 'cb_' + sheet.replace(/\s/g,'_') + '_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    var s = document.getElementById('jsonp_' + cbName);
+    if(s) s.remove();
+    if(!data || !data.length){ cb([]); return; }
+    var headers = data[0];
+    var rows = data.slice(1).map(function(row){
+      var obj = {};
+      headers.forEach(function(h,i){ obj[h] = row[i] !== undefined ? row[i] : ''; });
+      return obj;
+    });
+    cb(rows);
+  };
+  var script = document.createElement('script');
+  script.id = 'jsonp_' + cbName;
+  script.src = SCRIPT_URL + '?action=get&sheet=' + encodeURIComponent(sheet) + '&callback=' + cbName;
+  script.onerror = function(){ delete window[cbName]; cb([]); };
+  document.head.appendChild(script);
+}
+
+function apiAppend(sheet, row, cb) {
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({action:'append', sheet:sheet, row:row})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){ if(cb) cb(); })
+  .catch(function(){ toast('Error saving data'); });
+}
+
+function loadAll(cb) {
+  var loaded = 0;
+  var total = 6;
+  function done(key, data) {
+    DB[key] = data;
+    loaded++;
+    if(loaded === total) { populateSelects(); if(cb) cb(); else renderCurrentPage(); }
+  }
+  apiGet('Brands', function(d){ done('brands', d); });
+  apiGet('Products', function(d){ done('products', d); });
+  apiGet('Batches', function(d){ done('batches', d); });
+  apiGet('Inventory', function(d){ done('inventory', d); });
+  apiGet('Sales', function(d){ done('sales', d); });
+  apiGet('Consignment', function(d){ done('consignment', d); });
+}
+
+function populateSelects() {
+  var brandOpts = DB.brands.map(function(b){ return '<option value="'+b['Brand ID']+'">'+b['Brand Name']+'</option>'; }).join('');
+  var skuOpts = DB.products.filter(function(p){ return p['Status']==='Active'; }).map(function(p){ return '<option value="'+p['SKU ID']+'">'+p['SKU ID']+' — '+p['SKU Name']+'</option>'; }).join('');
+
+  var pb = document.getElementById('p-brand');
+  if(pb) pb.innerHTML = brandOpts;
+
+  var pfb = document.getElementById('pf-brand');
+  if(pfb) pfb.innerHTML = '<option value="">All brands</option>' + brandOpts;
+
+  var invb = document.getElementById('inv-brand-filter');
+  if(invb) invb.innerHTML = '<option value="">All brands</option>' + brandOpts;
+
+  ['s-sku','con-sku'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.innerHTML = skuOpts;
+  });
+
+  var sfsku = document.getElementById('sf-sku');
+  if(sfsku) sfsku.innerHTML = '<option value="">All SKUs</option>' + skuOpts;
+}
+
+function getSellThrough(skuId, days) {
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  var total = 0;
+  DB.sales.forEach(function(s){
+    if(s['SKU ID'] === skuId && new Date(s['Date']) >= cutoff) {
+      total += Number(s['Units Sold']) || 0;
+    }
+  });
+  return total / (days / 30);
+}
+
+function getStock(skuId) {
+  var inv = DB.inventory.filter(function(i){ return i['SKU ID'] === skuId; });
+  if(!inv.length) return 0;
+  var latest = inv[inv.length - 1];
+  return Number(latest['Units in Stock']) || 0;
+}
+
+function getConsignStock(skuId) {
+  var inv = DB.inventory.filter(function(i){ return i['SKU ID'] === skuId; });
+  if(!inv.length) return 0;
+  var latest = inv[inv.length - 1];
+  return Number(latest['Units in Consignment']) || 0;
+}
+
+function getWeeksLeft(skuId) {
+  var rate = getSellThrough(skuId, 90);
+  if(rate === 0) return null;
+  return (getStock(skuId) / rate) * 4.33;
+}
+
+function getStatus(weeks) {
+  if(weeks === null) return 'ok';
+  if(weeks <= 0) return 'out';
+  if(weeks <= 4) return 'danger';
+  if(weeks <= 6) return 'warning';
+  return 'ok';
+}
+
+function getAvgCost(skuId) {
+  var batches = DB.batches.filter(function(b){ return b['SKU ID'] === skuId && Number(b['Units Received']) > 0; });
+  if(!batches.length) return 0;
+  var totalCost = 0, totalUnits = 0;
+  batches.forEach(function(b){
+    var u = Number(b['Units Received']) || 0;
+    var c = Number(b['Landed Cost per Unit (THB)']) || 0;
+    totalCost += u * c; totalUnits += u;
+  });
+  return totalUnits ? totalCost / totalUnits : 0;
+}
+
+function showPage(page, el) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('page-' + page).classList.add('active');
+  if(el) el.classList.add('active');
+  currentPage = page;
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  if(currentPage === 'dashboard') renderDashboard();
+  else if(currentPage === 'alerts') renderAlerts();
+  else if(currentPage === 'inventory') renderInventory();
+  else if(currentPage === 'performance') renderPerformance();
+  else if(currentPage === 'products') { renderProductList(); renderAvgCosts(); }
+  else if(currentPage === 'batches') renderBatchHistory();
+  else if(currentPage === 'consignment') renderConsignHistory();
+  else if(currentPage === 'sales') renderSalesHistory();
+}
+
+function switchTab(section, idx, el) {
+  var contents = document.querySelectorAll('#page-' + section + ' .tab-content');
+  var tabs = document.querySelectorAll('#page-' + section + ' .tab');
+  contents.forEach(function(c){ c.classList.remove('active'); });
+  tabs.forEach(function(t){ t.classList.remove('active'); });
+  var tc = document.getElementById(section + '-tc-' + idx);
+  if(tc) tc.classList.add('active');
+  if(el) el.classList.add('active');
+  if(idx > 0) renderCurrentPage();
+}
+
+function renderDashboard() {
+  var active = DB.products.filter(function(p){ return p['Status']==='Active'; });
+  var totalStock = active.reduce(function(s,p){ return s + getStock(p['SKU ID']); }, 0);
+  var alertProds = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null && w<=6; });
+  var cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate()-30);
+  var sales30 = DB.sales.filter(function(s){ return new Date(s['Date'])>=cutoff30; });
+  var rev30 = sales30.reduce(function(sum,s){ return sum + (Number(s['Units Sold'])||0)*(Number(s['Sale Price (THB)'])||0); }, 0);
+
+  document.getElementById('dash-metrics').innerHTML =
+    '<div class="metric-card"><div class="metric-label">Active SKUs</div><div class="metric-value">'+active.length+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Total units in stock</div><div class="metric-value">'+fmt(totalStock)+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Revenue (30 days)</div><div class="metric-value">฿'+fmt(rev30)+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Reorder alerts</div><div class="metric-value" style="color:'+(alertProds.length>0?'var(--danger)':'var(--success)')+'">'+alertProds.length+'</div><div class="metric-sub">SKUs under 6 weeks</div></div>';
+
+  var badge = document.getElementById('alert-badge');
+  if(alertProds.length > 0) { badge.style.display=''; badge.textContent=alertProds.length; } else { badge.style.display='none'; }
+
+  var dangerOnes = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null&&w<=4&&w>0; });
+  var warnOnes = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null&&w>4&&w<=6; });
+  var aHtml = '';
+  if(dangerOnes.length) aHtml += '<div class="alert alert-danger"><strong>Order now:</strong> '+dangerOnes.map(function(p){return p['SKU Name'];}).join(', ')+' — under 4 weeks of stock.</div>';
+  if(warnOnes.length) aHtml += '<div class="alert alert-warning"><strong>Plan ahead:</strong> '+warnOnes.map(function(p){return p['SKU Name'];}).join(', ')+' — 4–6 weeks of stock remaining.</div>';
+  document.getElementById('dash-alerts').innerHTML = aHtml;
+
+  var stockRows = active.slice(0,10).map(function(p){
+    var stock=getStock(p['SKU ID']); var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
+    var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
+    var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
+    return '<tr><td>'+p['SKU Name']+'</td><td style="text-align:right">'+fmt(stock)+'</td><td style="text-align:right">'+(weeks!==null?weeks.toFixed(1)+'w':'—')+'</td><td><span class="badge '+bm[st]+'">'+lm[st]+'</span></td></tr>';
+  }).join('');
+  document.getElementById('dash-stock').innerHTML = '<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Weeks left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
+
+  var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,6);
+  document.getElementById('dash-topsellers').innerHTML = skuRates.map(function(s){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><span>'+s.name+'</span><span style="font-weight:500">'+s.units.toFixed(1)+'<span style="color:var(--text-faint);font-weight:400"> /mo</span></span></div>';
+  }).join('') || '<div class="empty-state">No sales data yet</div>';
+
+  var cutoff90=new Date(); cutoff90.setDate(cutoff90.getDate()-90);
+  var channels={};
+  DB.sales.filter(function(s){return new Date(s['Date'])>=cutoff90;}).forEach(function(s){
+    var ch=s['Channel']||'Other';
+    channels[ch]=(channels[ch]||0)+(Number(s['Units Sold'])||0);
+  });
+  var total=Object.values(channels).reduce(function(a,b){return a+b;},0)||1;
+  document.getElementById('dash-channels').innerHTML = Object.entries(channels).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    var pct=Math.round(e[1]/total*100);
+    return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>'+e[0]+'</span><span>'+fmt(e[1])+' units ('+pct+'%)</span></div><div class="progress-wrap"><div class="progress-bar progress-green" style="width:'+pct+'%"></div></div></div>';
+  }).join('') || '<div class="empty-state">No sales data yet</div>';
+}
+
+function renderAlerts() {
+  var active = DB.products.filter(function(p){ return p['Status']==='Active'; });
+  var alerts = active.map(function(p){ return Object.assign({},p,{weeks:getWeeksLeft(p['SKU ID'])}); })
+    .filter(function(p){ return getStatus(p.weeks)!=='ok'; })
+    .sort(function(a,b){ return (a.weeks||999)-(b.weeks||999); });
+  if(!alerts.length) { document.getElementById('alerts-container').innerHTML='<div class="alert alert-success">All SKUs have healthy stock levels (6+ weeks).</div>'; return; }
+  document.getElementById('alerts-container').innerHTML = alerts.map(function(p){
+    var st=getStatus(p.weeks); var rate=getSellThrough(p['SKU ID'],90); var stock=getStock(p['SKU ID']);
+    var isOut=st==='out';
+    return '<div class="alert '+(st==='danger'?'alert-danger':'alert-warning')+'" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'+
+      '<div><strong>'+p['SKU Name']+'</strong><br><span style="font-size:12px;opacity:0.85;">'+p['SKU ID']+' · '+fmt(stock)+' units in stock · '+rate.toFixed(1)+' units/month (90-day avg)</span></div>'+
+      '<span class="badge '+(st==='danger'?'badge-danger':'badge-warning')+'">'+(isOut?'Out of stock':p.weeks.toFixed(1)+' weeks left')+'</span></div>';
+  }).join('');
+}
+
+function renderInventory() {
+  var bf=document.getElementById('inv-brand-filter').value;
+  var sf=document.getElementById('inv-status-filter').value;
+  var prods=DB.products.filter(function(p){ return p['Status']==='Active'; });
+  if(bf) prods=prods.filter(function(p){ return p['Brand ID']===bf; });
+  var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
+  var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
+  var rows=prods.map(function(p){
+    var brand=DB.brands.find(function(b){return b['Brand ID']===p['Brand ID'];});
+    var stock=getStock(p['SKU ID']); var con=getConsignStock(p['SKU ID']);
+    var r30=getSellThrough(p['SKU ID'],30); var r90=getSellThrough(p['SKU ID'],90);
+    var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
+    if(sf && st!==sf) return '';
+    var wStr=weeks===null?'—':weeks<=0?'0w':weeks.toFixed(1)+'w';
+    var barColor=st==='ok'?'progress-green':st==='warning'?'progress-amber':'progress-red';
+    var barWidth=weeks!==null&&weeks>0?Math.min(weeks/12*100,100):0;
+    return '<tr>'+
+      '<td><strong>'+p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+p['SKU ID']+'</span></td>'+
+      '<td>'+(brand?brand['Brand Name']:'')+'</td>'+
+      '<td style="text-align:right">'+fmt(stock)+'</td>'+
+      '<td style="text-align:right">'+(con>0?fmt(con):'—')+'</td>'+
+      '<td style="text-align:right">'+r30.toFixed(1)+'</td>'+
+      '<td style="text-align:right">'+r90.toFixed(1)+'</td>'+
+      '<td><div class="weeks-bar"><span class="weeks-num">'+wStr+'</span>'+
+        (weeks!==null&&weeks>0?'<div class="progress-wrap" style="flex:1"><div class="progress-bar '+barColor+'" style="width:'+barWidth+'%"></div></div>':'')+
+      '</div></td>'+
+      '<td><span class="badge '+bm[st]+'">'+lm[st]+'</span></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('inv-table').innerHTML='<table><thead><tr><th>SKU</th><th>Brand</th><th style="text-align:right">In stock</th><th style="text-align:right">Consignment</th><th style="text-align:right">30d/mo</th><th style="text-align:right">90d/mo</th><th>Weeks left</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="empty-state">No products found</td></tr>')+'</tbody></table>';
+}
+
+function renderPerformance() {
+  var rows=DB.products.map(function(p){
+    var avgCost=getAvgCost(p['SKU ID']);
+    var sales=DB.sales.filter(function(s){return s['SKU ID']===p['SKU ID'];});
+    var totalRev=sales.reduce(function(s,r){return s+(Number(r['Units Sold'])||0)*(Number(r['Sale Price (THB)'])||0);},0);
+    var totalUnits=sales.reduce(function(s,r){return s+(Number(r['Units Sold'])||0);},0);
+    var avgPrice=totalUnits?totalRev/totalUnits:0;
+    var margin=avgPrice&&avgCost?((avgPrice-avgCost)/avgPrice*100):null;
+    var r90=getSellThrough(p['SKU ID'],90);
+    return '<tr>'+
+      '<td><strong>'+p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+p['SKU ID']+'</span></td>'+
+      '<td style="text-align:right">'+r90.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
+      '<td style="text-align:right">'+fmt(totalUnits)+'</td>'+
+      '<td style="text-align:right">'+(avgCost?'฿'+fmt(avgCost,2):'—')+'</td>'+
+      '<td style="text-align:right">'+(avgPrice?'฿'+fmt(avgPrice,2):'—')+'</td>'+
+      '<td style="text-align:right">'+(margin!==null?margin.toFixed(1)+'%':'—')+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead><tr><th>SKU</th><th style="text-align:right">90d rate</th><th style="text-align:right">Total sold</th><th style="text-align:right">Avg cost</th><th style="text-align:right">Avg price</th><th style="text-align:right">Margin</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
+}
+
+function renderProductList() {
+  var bf=document.getElementById('pf-brand').value;
+  var sf=document.getElementById('pf-status').value;
+  var prods=DB.products;
+  if(bf) prods=prods.filter(function(p){return p['Brand ID']===bf;});
+  if(sf) prods=prods.filter(function(p){return p['Status']===sf;});
+  var sm={Active:'badge-success',Discontinued:'badge-neutral',Seasonal:'badge-info'};
+  var rows=prods.map(function(p){
+    var brand=DB.brands.find(function(b){return b['Brand ID']===p['Brand ID'];});
+    return '<tr><td><strong>'+p['SKU Name']+'</strong></td><td>'+p['SKU ID']+'</td><td>'+(brand?brand['Brand Name']:'')+'</td><td>'+(p['Category']||'—')+'</td><td><span class="badge '+(sm[p['Status']]||'badge-neutral')+'">'+p['Status']+'</span></td><td>'+(p['Reorder Point (units)']||'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('product-list').innerHTML='<table><thead><tr><th>Name</th><th>SKU ID</th><th>Brand</th><th>Category</th><th>Status</th><th>Reorder pt</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
+}
+
+function renderAvgCosts() {
+  var rows=DB.products.map(function(p){
+    var avg=getAvgCost(p['SKU ID']);
+    var nb=DB.batches.filter(function(b){return b['SKU ID']===p['SKU ID'];}).length;
+    return '<tr><td>'+p['SKU Name']+'</td><td>'+p['SKU ID']+'</td><td style="text-align:right">'+nb+'</td><td style="text-align:right">'+(avg?'฿'+fmt(avg,2):'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('avg-costs').innerHTML='<table><thead><tr><th>SKU</th><th>SKU ID</th><th style="text-align:right">Batches</th><th style="text-align:right">Avg landed cost</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="empty-state">No cost data yet</td></tr>')+'</tbody></table>';
+}
+
+function renderBatchHistory() {
+  var rows=[].concat(DB.batches).reverse().map(function(b){
+    var prod=DB.products.find(function(p){return p['SKU ID']===b['SKU ID'];});
+    return '<tr><td>'+b['Batch ID']+'</td><td>'+fmtDate(b['Date'])+'</td><td>'+(prod?prod['SKU Name']:b['SKU ID'])+'</td><td style="text-align:right">'+fmt(b['Units Received'])+'</td><td style="text-align:right">'+b['Foreign Unit Cost']+(b['FX Rate']?' @ '+b['FX Rate']:'')+'</td><td style="text-align:right">฿'+fmt(b['Landed Cost per Unit (THB)'],2)+'</td></tr>';
+  }).join('');
+  document.getElementById('batch-history').innerHTML='<table><thead><tr><th>Batch</th><th>Date</th><th>SKU</th><th style="text-align:right">Received</th><th style="text-align:right">Foreign cost</th><th style="text-align:right">Landed cost</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No batches yet</td></tr>')+'</tbody></table>';
+}
+
+function renderConsignHistory() {
+  var rows=[].concat(DB.consignment).reverse().map(function(c){
+    var prod=DB.products.find(function(p){return p['SKU ID']===c['SKU ID'];});
+    var out=Number(c['Units Sent']||0)-Number(c['Units Sold']||0)-Number(c['Units Returned']||0);
+    return '<tr><td>'+c['Consignment ID']+'</td><td>'+fmtDate(c['Date Sent'])+'</td><td>'+c['Consignee']+'</td><td>'+(prod?prod['SKU Name']:c['SKU ID'])+'</td><td style="text-align:right">'+fmt(c['Units Sent'])+'</td><td style="text-align:right">'+fmt(c['Units Sold'])+'</td><td style="text-align:right">'+fmt(out)+'</td></tr>';
+  }).join('');
+  document.getElementById('consign-history').innerHTML='<table><thead><tr><th>ID</th><th>Date</th><th>Consignee</th><th>SKU</th><th style="text-align:right">Sent</th><th style="text-align:right">Sold</th><th style="text-align:right">Outstanding</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" class="empty-state">No consignments yet</td></tr>')+'</tbody></table>';
+}
+
+function renderSalesHistory() {
+  var cf=document.getElementById('sf-channel').value;
+  var sf=document.getElementById('sf-sku').value;
+  var sales=[].concat(DB.sales).reverse();
+  if(cf) sales=sales.filter(function(s){return s['Channel']===cf;});
+  if(sf) sales=sales.filter(function(s){return s['SKU ID']===sf;});
+  var rows=sales.slice(0,100).map(function(s){
+    var prod=DB.products.find(function(p){return p['SKU ID']===s['SKU ID'];});
+    var rev=(Number(s['Units Sold'])||0)*(Number(s['Sale Price (THB)'])||0);
+    return '<tr><td>'+fmtDate(s['Date'])+'</td><td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td><td><span class="badge badge-info">'+s['Channel']+'</span></td><td style="text-align:right">'+fmt(s['Units Sold'])+'</td><td style="text-align:right">฿'+fmt(s['Sale Price (THB)'],2)+'</td><td style="text-align:right">฿'+fmt(rev)+'</td></tr>';
+  }).join('');
+  document.getElementById('sales-history').innerHTML='<table><thead><tr><th>Date</th><th>SKU</th><th>Channel</th><th style="text-align:right">Units</th><th style="text-align:right">Unit price</th><th style="text-align:right">Revenue</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No sales yet</td></tr>')+'</tbody></table>';
+}
+
+function addBatchLine() {
+  var skuOpts=DB.products.filter(function(p){return p['Status']==='Active';}).map(function(p){return '<option value="'+p['SKU ID']+'">'+p['SKU ID']+' — '+p['SKU Name']+'</option>';}).join('');
+  var id='bl'+Date.now();
+  var div=document.createElement('div');
+  div.className='batch-line'; div.id=id;
+  div.innerHTML='<button class="remove-line" onclick="document.getElementById(\''+id+'\').remove()">×</button>'+
+    '<div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr;">'+
+    '<div class="form-group"><label>SKU</label><select>'+skuOpts+'</select></div>'+
+    '<div class="form-group"><label>Ordered</label><input type="number" placeholder="0" min="1"/></div>'+
+    '<div class="form-group"><label>Received</label><input type="number" placeholder="0" min="0"/></div>'+
+    '<div class="form-group"><label>Foreign unit cost</label><input type="number" placeholder="0.00" step="0.01"/></div>'+
+    '</div>';
+  document.getElementById('batch-lines').appendChild(div);
+}
+
+function clearBatchForm() {
+  ['b-id','b-date','b-fx','b-shipping'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('batch-lines').innerHTML='';
+}
+
+function submitBatch() {
+  var batchId=document.getElementById('b-id').value||uid('BATCH');
+  var date=document.getElementById('b-date').value;
+  var currency=document.getElementById('b-currency').value;
+  var fx=parseFloat(document.getElementById('b-fx').value);
+  var shipping=parseFloat(document.getElementById('b-shipping').value)||0;
+  if(!date||!fx){ toast('Please fill in date and FX rate'); return; }
+  var lines=document.querySelectorAll('#batch-lines .batch-line');
+  if(!lines.length){ toast('Add at least one SKU'); return; }
+  var totalRec=0;
+  lines.forEach(function(l){ totalRec+=parseFloat(l.querySelectorAll('input')[1].value)||0; });
+  var shipPerUnit=totalRec>0?shipping/totalRec:0;
+  var rows=[];
+  lines.forEach(function(l){
+    var sku=l.querySelector('select').value;
+    var ordered=parseFloat(l.querySelectorAll('input')[0].value)||0;
+    var received=parseFloat(l.querySelectorAll('input')[1].value)||0;
+    var fCost=parseFloat(l.querySelectorAll('input')[2].value)||0;
+    var thbCost=fCost*fx;
+    var landed=thbCost+shipPerUnit;
+    rows.push({sku:sku,ordered:ordered,received:received,row:[batchId,date,sku,ordered,received,fCost,fx,thbCost.toFixed(2),shipPerUnit.toFixed(2),landed.toFixed(2),'']});
+  });
+  var saved=0;
+  rows.forEach(function(r){
+    apiAppend('Batches', r.row, function(){
+      saved++;
+      if(saved===rows.length){
+        toast('Batch saved'); clearBatchForm(); loadAll();
+      }
+    });
+  });
+}
+
+function addSaleLine() {
+  var skuOpts=DB.products.filter(function(p){return p['Status']==='Active';}).map(function(p){return '<option value="'+p['SKU ID']+'">'+p['SKU ID']+' — '+p['SKU Name']+'</option>';}).join('');
+  var id='sl'+Date.now();
+  var div=document.createElement('div');
+  div.className='batch-line'; div.id=id;
+  div.innerHTML='<button class="remove-line" onclick="document.getElementById(\''+id+'\').remove()">×</button>'+
+    '<div class="form-grid" style="grid-template-columns:2fr 1fr 1fr;">'+
+    '<div class="form-group"><label>SKU</label><select>'+skuOpts+'</select></div>'+
+    '<div class="form-group"><label>Units sold</label><input type="number" placeholder="0" min="1"/></div>'+
+    '<div class="form-group"><label>Price/unit (THB)</label><input type="number" placeholder="0"/></div>'+
+    '</div>';
+  document.getElementById('batch-sale-lines').appendChild(div);
+}
+
+function submitSaleSingle() {
+  var date=document.getElementById('s-date').value;
+  var channel=document.getElementById('s-channel').value;
+  var sku=document.getElementById('s-sku').value;
+  var units=parseInt(document.getElementById('s-units').value);
+  var price=parseFloat(document.getElementById('s-price').value)||0;
+  var buyer=document.getElementById('s-buyer').value;
+  var notes=document.getElementById('s-notes').value;
+  if(!date||!sku||!units){ toast('Please fill in date, SKU and units'); return; }
+  apiAppend('Sales',[uid('SALE'),date,sku,channel,units,price,buyer,notes],function(){
+    toast('Sale saved');
+    document.getElementById('s-units').value='';
+    document.getElementById('s-price').value='';
+    loadAll();
+  });
+}
+
+function submitSaleBatch() {
+  var date=document.getElementById('bs-date').value;
+  var channel=document.getElementById('bs-channel').value;
+  if(!date){ toast('Please select a date'); return; }
+  var lines=document.querySelectorAll('#batch-sale-lines .batch-line');
+  if(!lines.length){ toast('Add at least one SKU'); return; }
+  var toSave=[];
+  lines.forEach(function(l){
+    var sku=l.querySelector('select').value;
+    var units=parseInt(l.querySelectorAll('input')[0].value)||0;
+    var price=parseFloat(l.querySelectorAll('input')[1].value)||0;
+    if(units>0) toSave.push([uid('SALE'),date,sku,channel,units,price,'','']);
+  });
+  if(!toSave.length){ toast('No valid entries'); return; }
+  var saved=0;
+  toSave.forEach(function(row){
+    apiAppend('Sales',row,function(){
+      saved++;
+      if(saved===toSave.length){ toast('All sales saved'); document.getElementById('batch-sale-lines').innerHTML=''; loadAll(); }
+    });
+  });
+}
+
+function submitConsignSend() {
+  var date=document.getElementById('con-date').value;
+  var consignee=document.getElementById('con-consignee').value;
+  var sku=document.getElementById('con-sku').value;
+  var units=parseInt(document.getElementById('con-units').value);
+  var notes=document.getElementById('con-notes').value;
+  if(!date||!consignee||!sku||!units){ toast('Please fill all required fields'); return; }
+  apiAppend('Consignment',[uid('CON'),date,sku,consignee,units,0,0,'',notes],function(){
+    toast('Consignment recorded'); loadAll();
+  });
+}
+
+function submitConsignReport() {
+  var conId=document.getElementById('con-report-id').value;
+  var date=document.getElementById('con-report-date').value;
+  var sold=parseInt(document.getElementById('con-sold').value)||0;
+  if(!conId||!date){ toast('Please fill in consignment ID and report date'); return; }
+  if(sold>0){
+    var con=DB.consignment.find(function(c){return c['Consignment ID']===conId;});
+    if(con) apiAppend('Sales',[uid('SALE'),date,con['SKU ID'],'Consignment',sold,0,con['Consignee'],'From '+conId],function(){});
+  }
+  toast('Report saved'); loadAll();
+}
+
+function submitProduct() {
+  var id=document.getElementById('p-id').value;
+  var name=document.getElementById('p-name').value;
+  var brand=document.getElementById('p-brand').value;
+  var cat=document.getElementById('p-cat').value;
+  var unit=document.getElementById('p-unit').value||'piece';
+  var reorder=document.getElementById('p-reorder').value||6;
+  var status=document.getElementById('p-status').value;
+  var notes=document.getElementById('p-notes').value;
+  if(!id||!name||!brand){ toast('SKU ID, name and brand are required'); return; }
+  apiAppend('Products',[id,name,brand,cat,unit,reorder,status,notes],function(){
+    toast('Product added');
+    ['p-id','p-name','p-cat','p-notes'].forEach(function(i){ document.getElementById(i).value=''; });
+    loadAll();
+  });
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', function(){
+  ['b-date','s-date','bs-date','con-date','con-report-date'].forEach(function(id){
+    var el=document.getElementById(id); if(el&&!el.value) el.value=today();
+  });
+  loadAll(function(){ renderDashboard(); });
+});
+</script>
