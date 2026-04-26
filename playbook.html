@@ -505,11 +505,11 @@ function getStatus(weeks) {
 }
 
 function getAvgCost(skuId) {
-  var batches = DB.batches.filter(function(b){ return b['SKU ID'] === skuId && Number(b['Units Received']) > 0; });
+  var batches = DB.batches.filter(function(b){ return b['SKU ID'] === skuId && Number(b['Units Ordered']) > 0; });
   if(!batches.length) return 0;
   var totalCost = 0, totalUnits = 0;
   batches.forEach(function(b){
-    var u = Number(b['Units Received']) || 0;
+    var u = Number(b['Units Ordered']) || 0;
     var c = Number(b['Landed Cost per Unit (THB)']) || 0;
     totalCost += u * c; totalUnits += u;
   });
@@ -689,11 +689,30 @@ function renderAvgCosts() {
 }
 
 function renderBatchHistory() {
-  var rows=[].concat(DB.batches).reverse().map(function(b){
-    var prod=DB.products.find(function(p){return p['SKU ID']===b['SKU ID'];});
-    return '<tr><td>'+b['Batch ID']+'</td><td>'+fmtDate(b['Date'])+'</td><td>'+(prod?prod['SKU Name']:b['SKU ID'])+'</td><td style="text-align:right">'+fmt(b['Units Received'])+'</td><td style="text-align:right">'+b['Foreign Unit Cost']+(b['FX Rate']?' @ '+b['FX Rate']:'')+'</td><td style="text-align:right">฿'+fmt(b['Landed Cost per Unit (THB)'],2)+'</td></tr>';
+  var bf = document.getElementById('bh-brand-filter') ? document.getElementById('bh-brand-filter').value : '';
+  var search = document.getElementById('bh-search') ? document.getElementById('bh-search').value.toLowerCase() : '';
+  var batches = [].concat(DB.batches).reverse();
+  if(bf) batches = batches.filter(function(b){
+    var prod = DB.products.find(function(p){ return p['SKU ID'] === b['SKU ID']; });
+    return prod && prod['Brand ID'] === bf;
+  });
+  if(search) batches = batches.filter(function(b){
+    return (b['Batch ID']||'').toLowerCase().includes(search) || (b['SKU ID']||'').toLowerCase().includes(search);
+  });
+  var rows = batches.map(function(b){
+    var prod = DB.products.find(function(p){ return p['SKU ID'] === b['SKU ID']; });
+    return '<tr><td>'+b['Batch ID']+'</td><td>'+fmtDate(b['Arrival Date'])+'</td><td>'+(prod?prod['SKU Name']:b['SKU ID'])+'</td><td style="text-align:right">'+fmt(b['Units Ordered'])+'</td><td style="text-align:right">'+b['Foreign Unit Cost']+(b['FX Rate']?' @ '+b['FX Rate']:'')+'</td><td style="text-align:right">฿'+fmt(b['Landed Cost Per Unit (THB)'],2)+'</td></tr>';
   }).join('');
-  document.getElementById('batch-history').innerHTML='<table><thead><tr><th>Batch</th><th>Date</th><th>SKU</th><th style="text-align:right">Received</th><th style="text-align:right">Foreign cost</th><th style="text-align:right">Landed cost</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No batches yet</td></tr>')+'</tbody></table>';
+  document.getElementById('batch-history').innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:1rem;">'+
+    '<select id="bh-brand-filter" onchange="renderBatchHistory()" style="width:160px;"><option value="">All brands</option>'+
+    DB.brands.map(function(br){ return '<option value="'+br['Brand ID']+'"'+(bf===br['Brand ID']?' selected':'')+'>'+br['Brand Name']+'</option>'; }).join('')+
+    '</select>'+
+    '<input type="text" id="bh-search" placeholder="Search batch or SKU…" oninput="renderBatchHistory()" style="width:200px;" value="'+search+'"/>'+
+    '</div>'+
+    '<table><thead><tr><th>Batch</th><th>Arrival date</th><th>SKU</th><th style="text-align:right">Units</th><th style="text-align:right">Foreign cost</th><th style="text-align:right">Landed cost</th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="6" class="empty-state">No batches yet</td></tr>')+
+    '</tbody></table>';
 }
 
 function renderConsignHistory() {
@@ -748,22 +767,25 @@ function submitBatch() {
   if(!date||!fx){ toast('Please fill in date and FX rate'); return; }
   var lines=document.querySelectorAll('#batch-lines .batch-line');
   if(!lines.length){ toast('Add at least one SKU'); return; }
-  var totalRec=0;
-  lines.forEach(function(l){ totalRec+=parseFloat(l.querySelectorAll('input')[1].value)||0; });
-  var shipPerUnit=totalRec>0?shipping/totalRec:0;
-  var rows=[];
+  var lineData=[];
   lines.forEach(function(l){
     var sku=l.querySelector('select').value;
     var ordered=parseFloat(l.querySelectorAll('input')[0].value)||0;
-    var received=parseFloat(l.querySelectorAll('input')[1].value)||0;
-    var fCost=parseFloat(l.querySelectorAll('input')[2].value)||0;
-    var thbCost=fCost*fx;
-    var landed=thbCost+shipPerUnit;
-    rows.push({sku:sku,ordered:ordered,received:received,row:[batchId,date,sku,ordered,received,fCost,fx,thbCost.toFixed(2),shipPerUnit.toFixed(2),landed.toFixed(2),'']});
+    var fCost=parseFloat(l.querySelectorAll('input')[1].value)||0;
+    lineData.push({sku:sku,ordered:ordered,fCost:fCost,invoiceValue:ordered*fCost*fx});
   });
-  var saved=0;
-  rows.forEach(function(r){
-    apiAppend('Batches', r.row, function(){
+  var totalInvoiceValue=lineData.reduce(function(s,l){return s+l.invoiceValue;},0);
+  var rows=[];
+  lineData.forEach(function(l){
+    var thbCost=l.fCost*fx;
+    var shipShare=totalInvoiceValue>0?(l.invoiceValue/totalInvoiceValue)*shipping:0;
+    var shipPerUnit=l.ordered>0?shipShare/l.ordered:0;
+    var landed=thbCost+shipPerUnit;
+    rows.push([batchId,date,l.sku,l.ordered,l.fCost,fx,thbCost.toFixed(2),shipPerUnit.toFixed(2),landed.toFixed(2),'']);
+  });
+    var saved=0;
+  rows.forEach(function(row){
+    apiAppend('Batches', row, function(){
       saved++;
       if(saved===rows.length){
         toast('Batch saved'); clearBatchForm(); loadAll();
