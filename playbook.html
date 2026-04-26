@@ -383,7 +383,17 @@ function fmt(n, dec) {
 
 function fmtDate(d) {
   if(!d) return '';
-  try { return new Date(d).toLocaleDateString('th-TH', {year:'numeric',month:'short',day:'numeric'}); } catch(e) { return d; }
+  try {
+    var parsed;
+    if(!isNaN(d) && Number(d) > 1000) {
+      // Google Sheets serial number: days since Dec 30, 1899
+      parsed = new Date((Number(d) - 25569) * 86400 * 1000);
+    } else {
+      parsed = new Date(d);
+    }
+    if(isNaN(parsed.getTime())) return d;
+    return parsed.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+  } catch(e) { return d; }
 }
 
 function today() {
