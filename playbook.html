@@ -746,7 +746,7 @@ function renderSalesHistory() {
   var sales=[].concat(DB.sales).reverse();
   if(cf) sales=sales.filter(function(s){return s['Channel']===cf;});
   if(sf) sales=sales.filter(function(s){return s['SKU ID']===sf;});
-  var rows=sales.slice(0,100).map(function(s){
+  var rows=sales.slice(0,2000).map(function(s){
     var prod=DB.products.find(function(p){return p['SKU ID']===s['SKU ID'];});
     var rev=(Number(s['Units Sold'])||0)*(Number(s['Sale Price (THB)'])||0);
     return '<tr><td>'+fmtDate(s['Date'])+'</td><td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td><td><span class="badge badge-info">'+s['Channel']+'</span></td><td style="text-align:right">'+fmt(s['Units Sold'])+'</td><td style="text-align:right">฿'+fmt(s['Sale Price (THB)'],2)+'</td><td style="text-align:right">฿'+fmt(rev)+'</td></tr>';
