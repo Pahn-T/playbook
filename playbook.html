@@ -605,7 +605,7 @@ function renderDashboard() {
   }).join('');
   document.getElementById('dash-stock').innerHTML='<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Months left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
 
-  var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,6);
+  var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,10);
   document.getElementById('dash-topsellers').innerHTML = skuRates.map(function(s){
     return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><span>'+s.name+'</span><span style="font-weight:500">'+s.units.toFixed(1)+'<span style="color:var(--text-faint);font-weight:400"> /mo</span></span></div>';
   }).join('') || '<div class="empty-state">No sales data yet</div>';
