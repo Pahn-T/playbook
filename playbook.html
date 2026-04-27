@@ -587,13 +587,24 @@ function renderDashboard() {
   if(warnOnes.length) aHtml += '<div class="alert alert-warning"><strong>Plan ahead:</strong> '+warnOnes.map(function(p){return p['SKU Name'];}).join(', ')+' — 4–6 weeks of stock remaining.</div>';
   document.getElementById('dash-alerts').innerHTML = aHtml;
 
-  var stockRows = active.slice(0,10).map(function(p){
-    var stock=getStock(p['SKU ID']); var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
-    var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
-    var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
-    return '<tr><td>'+p['SKU Name']+'</td><td style="text-align:right">'+fmt(stock)+'</td><td style="text-align:right">'+(weeks!==null?weeks.toFixed(1)+'w':'—')+'</td><td><span class="badge '+bm[st]+'">'+lm[st]+'</span></td></tr>';
+  var stockWithData = active.map(function(p){
+    var stock=getStock(p['SKU ID']); var weeks=getWeeksLeft(p['SKU ID']);
+    var months=weeks!==null?weeks/4.33:null;
+    return {name:p['SKU Name'],stock:stock,months:months,status:getStatus(weeks)};
+  });
+  // Sort by fewest months left (nulls = no sales data, push to bottom)
+  stockWithData.sort(function(a,b){
+    if(a.months===null && b.months===null) return 0;
+    if(a.months===null) return 1;
+    if(b.months===null) return -1;
+    return a.months - b.months;
+  });
+  var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
+  var lm={ok:'Healthy',warning:'2-mo alert',danger:'1-mo alert',out:'Out of stock'};
+  var stockRows = stockWithData.slice(0,10).map(function(p){
+    return '<tr><td>'+p.name+'</td><td style="text-align:right">'+fmt(p.stock)+'</td><td style="text-align:right">'+(p.months!==null?p.months.toFixed(1)+'mo':'—')+'</td><td><span class="badge '+bm[p.status]+'">'+lm[p.status]+'</span></td></tr>';
   }).join('');
-  document.getElementById('dash-stock').innerHTML = '<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Weeks left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
+  document.getElementById('dash-stock').innerHTML = '<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Months left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
 
   var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,6);
   document.getElementById('dash-topsellers').innerHTML = skuRates.map(function(s){
@@ -634,14 +645,14 @@ function renderInventory() {
   var prods=DB.products.filter(function(p){ return p['Status']==='Active'; });
   if(bf) prods=prods.filter(function(p){ return p['Brand ID']===bf; });
   var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
-  var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
+  var lm={ok:'Healthy',warning:'2-mo alert',danger:'1-mo alert',out:'Out of stock'};
   var rows=prods.map(function(p){
     var brand=DB.brands.find(function(b){return b['Brand ID']===p['Brand ID'];});
     var stock=getStock(p['SKU ID']); var con=getConsignStock(p['SKU ID']);
     var r30=getSellThrough(p['SKU ID'],30); var r90=getSellThrough(p['SKU ID'],90);
     var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
     if(sf && st!==sf) return '';
-    var wStr=weeks===null?'—':weeks<=0?'0w':weeks.toFixed(1)+'w';
+    var months=weeks!==null?weeks/4.33:null; var wStr=months===null?'—':months<=0?'0mo':months.toFixed(1)+'mo';
     var barColor=st==='ok'?'progress-green':st==='warning'?'progress-amber':'progress-red';
     var barWidth=weeks!==null&&weeks>0?Math.min(weeks/12*100,100):0;
     return '<tr>'+
