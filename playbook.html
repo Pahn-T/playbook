@@ -305,11 +305,11 @@ textarea { resize: vertical; min-height: 70px; }
           <select id="sf-sku" onchange="renderSalesHistory()" style="width:200px;"><option value="">All SKUs</option></select>
         </div>
         <div class="card"><div class="table-wrap" id="sales-history"></div></div>
-      <div id="sales-tc-3" class="tab-content">
+            <div id="sales-tc-3" class="tab-content">
         <div class="card" style="max-width:780px;">
           <div class="card-title">Paste sales data to import</div>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Paste tab-separated data with columns: <strong>Date | SKU ID | Channel | Units Sold</strong><br>Date format: DD/MM/YYYY &nbsp;·&nbsp; One row per line &nbsp;·&nbsp; No header row needed</p>
-          <textarea id="import-paste" rows="10" style="font-family:monospace;font-size:12px;" placeholder="31/01/2026&#9;CLIX-001&#9;Shopee&#9;12&#10;31/01/2026&#9;CLIX-002&#9;Lazada&#9;5"></textarea>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Paste tab-separated data with columns: <strong>Date &nbsp;|&nbsp; SKU ID &nbsp;|&nbsp; Channel &nbsp;|&nbsp; Units Sold</strong><br>Date format: DD/MM/YYYY &nbsp;·&nbsp; One row per line &nbsp;·&nbsp; No header row needed</p>
+          <textarea id="import-paste" rows="10" style="font-family:monospace;font-size:12px;width:100%;" placeholder="31/01/2026&#9;CLIX-001&#9;Shopee&#9;12&#10;28/02/2026&#9;CLIX-002&#9;Lazada&#9;5"></textarea>
           <div class="btn-group" style="margin-top:1rem;">
             <button class="btn btn-primary" onclick="parseImport()">Preview</button>
             <button class="btn" onclick="document.getElementById('import-paste').value='';document.getElementById('import-preview').innerHTML='';">Clear</button>
@@ -912,27 +912,27 @@ function submitProduct() {
 }
 
 
+
 function parseImport() {
   var raw = document.getElementById('import-paste').value.trim();
   if(!raw) { toast('Nothing to parse'); return; }
   var lines = raw.split('\n');
   var valid = [], invalid = [];
   var validSkuIds = DB.products.map(function(p){ return p['SKU ID']; });
-
   lines.forEach(function(line, idx) {
+    if(!line.trim()) return;
     var parts = line.split('\t');
-    if(parts.length < 4) { invalid.push({line: idx+1, raw: line, reason: 'Not enough columns'}); return; }
+    if(parts.length < 4) { invalid.push({line:idx+1, raw:line, reason:'Not enough columns'}); return; }
     var date = parts[0].trim();
     var skuId = parts[1].trim();
     var channel = parts[2].trim();
     var units = parseInt(parts[3].trim());
-    if(!date) { invalid.push({line: idx+1, raw: line, reason: 'Missing date'}); return; }
-    if(!validSkuIds.includes(skuId)) { invalid.push({line: idx+1, raw: line, reason: 'Unrecognised SKU: ' + skuId}); return; }
-    if(isNaN(units) || units <= 0) { invalid.push({line: idx+1, raw: line, reason: 'Invalid units'}); return; }
+    if(!date) { invalid.push({line:idx+1, raw:line, reason:'Missing date'}); return; }
+    if(!validSkuIds.includes(skuId)) { invalid.push({line:idx+1, raw:line, reason:'Unrecognised SKU: '+skuId}); return; }
+    if(isNaN(units) || units <= 0) { invalid.push({line:idx+1, raw:line, reason:'Invalid units'}); return; }
     var prod = DB.products.find(function(p){ return p['SKU ID'] === skuId; });
-    valid.push({date: date, skuId: skuId, skuName: prod ? prod['SKU Name'] : skuId, channel: channel, units: units});
+    valid.push({date:date, skuId:skuId, skuName:prod?prod['SKU Name']:skuId, channel:channel, units:units});
   });
-
   var html = '';
   if(valid.length) {
     html += '<div style="margin-bottom:1rem;"><span class="badge badge-success">'+valid.length+' rows ready to import</span></div>';
@@ -941,7 +941,8 @@ function parseImport() {
       return '<tr><td>'+r.date+'</td><td>'+r.skuName+'<br><span style="font-size:11px;color:var(--text-faint)">'+r.skuId+'</span></td><td>'+r.channel+'</td><td style="text-align:right">'+r.units+'</td></tr>';
     }).join('');
     html += '</tbody></table></div>';
-    html += '<button class="btn btn-primary" onclick="submitImport('+JSON.stringify(valid).replace(/'/g,"\'")+')">Import '+valid.length+' rows</button>';
+    var validJson = JSON.stringify(valid).replace(/\/g,'\\').replace(/'/g,"\'");
+    html += '<button class="btn btn-primary" onclick="submitImport('+validJson+')">Import '+valid.length+' rows</button>';
   }
   if(invalid.length) {
     html += '<div style="margin-top:1rem;"><span class="badge badge-danger">'+invalid.length+' rows skipped</span></div>';
@@ -957,9 +958,6 @@ function parseImport() {
 function submitImport(rows) {
   if(!rows || !rows.length) { toast('Nothing to import'); return; }
   var saved = 0;
-  var btn = event.target;
-  btn.disabled = true;
-  btn.textContent = 'Importing...';
   rows.forEach(function(r) {
     apiAppend('Sales', [uid('SALE'), r.date, r.skuId, r.channel, r.units, '', '', 'Imported'], function(){
       saved++;
@@ -972,6 +970,7 @@ function submitImport(rows) {
     });
   });
 }
+
 
 // Init
 document.addEventListener('DOMContentLoaded', function(){
