@@ -844,6 +844,7 @@ function submitSaleSingle() {
   var notes=document.getElementById('s-notes').value;
   if(!date||!sku||!units){ toast('Please fill in date, SKU and units'); return; }
   apiAppend('Sales',[uid('SALE'),date,sku,channel,units,price,buyer,notes],function(){
+    apiUpdateInventory(sku, -units);
     toast('Sale saved');
     document.getElementById('s-units').value='';
     document.getElementById('s-price').value='';
@@ -869,7 +870,10 @@ function submitSaleBatch() {
   toSave.forEach(function(row){
     apiAppend('Sales',row,function(){
       saved++;
-      if(saved===toSave.length){ toast('All sales saved'); document.getElementById('batch-sale-lines').innerHTML=''; loadAll(); }
+      if(saved===toSave.length){
+        toSave.forEach(function(r){ apiUpdateInventory(r[2], -r[4]); });
+        toast('All sales saved'); document.getElementById('batch-sale-lines').innerHTML=''; loadAll();
+      }
     });
   });
 }
@@ -913,6 +917,20 @@ function submitProduct() {
     ['p-id','p-name','p-cat','p-notes'].forEach(function(i){ document.getElementById(i).value=''; });
     loadAll();
   });
+}
+
+function apiUpdateInventory(skuId, delta) {
+  var cbName = 'cb_inv_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+  window[cbName] = function(data) {
+    delete window[cbName];
+    var s = document.getElementById('jsonp_' + cbName);
+    if(s) s.remove();
+  };
+  var script = document.createElement('script');
+  script.id = 'jsonp_' + cbName;
+  script.src = SCRIPT_URL + '?action=updateInventory&skuId=' + encodeURIComponent(skuId) + '&delta=' + delta + '&callback=' + cbName;
+  script.onerror = function(){ delete window[cbName]; };
+  document.head.appendChild(script);
 }
 
 // Init
