@@ -814,6 +814,7 @@ function submitBatch() {
     apiAppend('Batches', row, function(){
       saved++;
       if(saved===rows.length){
+        rows.forEach(function(r){ apiUpdateInventory(r[2], r[3]); });
         toast('Batch saved'); clearBatchForm(); loadAll();
       }
     });
