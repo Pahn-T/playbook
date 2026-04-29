@@ -567,6 +567,82 @@ function switchTab(section, idx, el) {
   if(el) el.classList.add('active');
   if(idx > 0) renderCurrentPage();
 }
+
+function renderDashboard() {
+  var active = DB.products.filter(function(p){ return p['Status']==='Active'; });
+  var totalStock = active.reduce(function(s,p){ return s + getStock(p['SKU ID']); }, 0);
+  var alertProds = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null && w<=6; });
+  var cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate()-30);
+  var sales30 = DB.sales.filter(function(s){ return new Date(s['Date'])>=cutoff30; });
+  var rev30 = sales30.reduce(function(sum,s){ return sum + (Number(s['Units Sold'])||0)*(Number(s['Sale Price (THB)'])||0); }, 0);
+
+  document.getElementById('dash-metrics').innerHTML =
+    '<div class="metric-card"><div class="metric-label">Active SKUs</div><div class="metric-value">'+active.length+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Total units in stock</div><div class="metric-value">'+fmt(totalStock)+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Revenue (30 days)</div><div class="metric-value">฿'+fmt(rev30)+'</div></div>' +
+    '<div class="metric-card"><div class="metric-label">Reorder alerts</div><div class="metric-value" style="color:'+(alertProds.length>0?'var(--danger)':'var(--success)')+'">'+alertProds.length+'</div><div class="metric-sub">SKUs under 6 weeks</div></div>';
+
+  var badge = document.getElementById('alert-badge');
+  if(alertProds.length > 0) { badge.style.display=''; badge.textContent=alertProds.length; } else { badge.style.display='none'; }
+
+  var dangerOnes = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null&&w<=4&&w>0; });
+  var warnOnes = active.filter(function(p){ var w=getWeeksLeft(p['SKU ID']); return w!==null&&w>4&&w<=6; });
+  var aHtml = '';
+  if(dangerOnes.length) aHtml += '<div class="alert alert-danger"><strong>Order now:</strong> '+dangerOnes.map(function(p){return p['SKU Name'];}).join(', ')+' — under 4 weeks of stock.</div>';
+  if(warnOnes.length) aHtml += '<div class="alert alert-warning"><strong>Plan ahead:</strong> '+warnOnes.map(function(p){return p['SKU Name'];}).join(', ')+' — 4–6 weeks of stock remaining.</div>';
+  document.getElementById('dash-alerts').innerHTML = aHtml;
+
+  var bm2={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
+  var lm2={ok:'Healthy',warning:'2-mo alert',danger:'1-mo alert',out:'Out of stock'};
+  var stockWithData = active.filter(function(p){ return getStock(p['SKU ID']) > 0; }).map(function(p){
+    var stock=getStock(p['SKU ID']); var weeks=getWeeksLeft(p['SKU ID']);
+    var months=weeks!==null?weeks/4.33:null;
+    return {name:p['SKU Name'],stock:stock,months:months,status:getStatus(weeks)};
+  });
+  stockWithData.sort(function(a,b){
+    if(a.months===null&&b.months===null) return 0;
+    if(a.months===null) return 1;
+    if(b.months===null) return -1;
+    return a.months-b.months;
+  });
+  var stockRows=stockWithData.slice(0,10).map(function(p){
+    return '<tr><td>'+p.name+'</td><td style="text-align:right">'+fmt(p.stock)+'</td><td style="text-align:right">'+(p.months!==null?p.months.toFixed(1)+'mo':'—')+'</td><td><span class="badge '+bm2[p.status]+'">'+lm2[p.status]+'</span></td></tr>';
+  }).join('');
+  document.getElementById('dash-stock').innerHTML='<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Months left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
+
+  var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,10);
+  document.getElementById('dash-topsellers').innerHTML = skuRates.map(function(s){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><span>'+s.name+'</span><span style="font-weight:500">'+s.units.toFixed(1)+'<span style="color:var(--text-faint);font-weight:400"> /mo</span></span></div>';
+  }).join('') || '<div class="empty-state">No sales data yet</div>';
+
+  var cutoff90=new Date(); cutoff90.setDate(cutoff90.getDate()-90);
+  var channels={};
+  DB.sales.filter(function(s){return new Date(s['Date'])>=cutoff90;}).forEach(function(s){
+    var ch=s['Channel']||'Other';
+    channels[ch]=(channels[ch]||0)+(Number(s['Units Sold'])||0);
+  });
+  var total=Object.values(channels).reduce(function(a,b){return a+b;},0)||1;
+  document.getElementById('dash-channels').innerHTML = Object.entries(channels).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    var pct=Math.round(e[1]/total*100);
+    return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>'+e[0]+'</span><span>'+fmt(e[1])+' units ('+pct+'%)</span></div><div class="progress-wrap"><div class="progress-bar progress-green" style="width:'+pct+'%"></div></div></div>';
+  }).join('') || '<div class="empty-state">No sales data yet</div>';
+}
+
+function renderAlerts() {
+  var active = DB.products.filter(function(p){ return p['Status']==='Active'; });
+  var alerts = active.map(function(p){ return Object.assign({},p,{weeks:getWeeksLeft(p['SKU ID'])}); })
+    .filter(function(p){ return getStatus(p.weeks)!=='ok'; })
+    .sort(function(a,b){ return (a.weeks||999)-(b.weeks||999); });
+  if(!alerts.length) { document.getElementById('alerts-container').innerHTML='<div class="alert alert-success">All SKUs have healthy stock levels (6+ weeks).</div>'; return; }
+  document.getElementById('alerts-container').innerHTML = alerts.map(function(p){
+    var st=getStatus(p.weeks); var rate=getSellThrough(p['SKU ID'],90); var stock=getStock(p['SKU ID']);
+    var isOut=st==='out';
+    return '<div class="alert '+(st==='danger'?'alert-danger':'alert-warning')+'" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'+
+      '<div><strong>'+p['SKU Name']+'</strong><br><span style="font-size:12px;opacity:0.85;">'+p['SKU ID']+' · '+fmt(stock)+' units in stock · '+rate.toFixed(1)+' units/month (90-day avg)</span></div>'+
+      '<span class="badge '+(st==='danger'?'badge-danger':'badge-warning')+'">'+(isOut?'Out of stock':p.weeks.toFixed(1)+' weeks left')+'</span></div>';
+  }).join('');
+}
+
 function renderInventory() {
   var bf=document.getElementById('inv-brand-filter').value;
   var sf=document.getElementById('inv-status-filter').value;
@@ -611,7 +687,7 @@ function renderInventory() {
   function invTh(label,col,align){
     var active=sortState.inv.col===col;
     var arr=active?(sortState.inv.dir===1?'&#9650;':'&#9660;'):'&#8645;';
-    return '<th class="sort-th" onclick="invSort(\'' +col+ '\')'+'" style="text-align:'+(align||'right')+(active?';color:var(--accent)':'')+'">'+''+label+'<span class="sort-arr'+(active?' on':'')+'">'+''+arr+'</span></th>';
+    return '<th class="sort-th" onclick="invSort(&apos;'+col+'&apos;)" style="text-align:'+(align||'right')+(active?';color:var(--accent)':'')+'">'+''+label+'<span class="sort-arr'+(active?' on':'')+'">'+''+arr+'</span></th>';
   }
   var thead='<tr>'+invTh('SKU','name','left')+invTh('Brand','brand','left')+invTh('In stock','stock')+
     '<th style="text-align:right">Consignment</th>'+invTh('30d/mo','r30')+invTh('90d/mo','r90')+
@@ -623,38 +699,6 @@ function invSort(col){
   else{sortState.inv.col=col;sortState.inv.dir=1;}
   renderInventory();
 }
-function renderInventory() {
-  var bf=document.getElementById('inv-brand-filter').value;
-  var sf=document.getElementById('inv-status-filter').value;
-  var prods=DB.products.filter(function(p){ return p['Status']==='Active'; });
-  if(bf) prods=prods.filter(function(p){ return p['Brand ID']===bf; });
-  var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
-  var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
-  var rows=prods.map(function(p){
-    var brand=DB.brands.find(function(b){return b['Brand ID']===p['Brand ID'];});
-    var stock=getStock(p['SKU ID']); var con=getConsignStock(p['SKU ID']);
-    var r30=getSellThrough(p['SKU ID'],30); var r90=getSellThrough(p['SKU ID'],90);
-    var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
-    if(sf && st!==sf) return '';
-    var wStr=weeks===null?'—':weeks<=0?'0w':weeks.toFixed(1)+'w';
-    var barColor=st==='ok'?'progress-green':st==='warning'?'progress-amber':'progress-red';
-    var barWidth=weeks!==null&&weeks>0?Math.min(weeks/12*100,100):0;
-    return '<tr>'+
-      '<td><strong>'+p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+p['SKU ID']+'</span></td>'+
-      '<td>'+(brand?brand['Brand Name']:'')+'</td>'+
-      '<td style="text-align:right">'+fmt(stock)+'</td>'+
-      '<td style="text-align:right">'+(con>0?fmt(con):'—')+'</td>'+
-      '<td style="text-align:right">'+r30.toFixed(1)+'</td>'+
-      '<td style="text-align:right">'+r90.toFixed(1)+'</td>'+
-      '<td><div class="weeks-bar"><span class="weeks-num">'+wStr+'</span>'+
-        (weeks!==null&&weeks>0?'<div class="progress-wrap" style="flex:1"><div class="progress-bar '+barColor+'" style="width:'+barWidth+'%"></div></div>':'')+
-      '</div></td>'+
-      '<td><span class="badge '+bm[st]+'">'+lm[st]+'</span></td>'+
-    '</tr>';
-  }).join('');
-  document.getElementById('inv-table').innerHTML='<table><thead><tr><th>SKU</th><th>Brand</th><th style="text-align:right">In stock</th><th style="text-align:right">Consignment</th><th style="text-align:right">30d/mo</th><th style="text-align:right">90d/mo</th><th>Weeks left</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="empty-state">No products found</td></tr>')+'</tbody></table>';
-}
-
 function renderPerformance() {
   var rowData=DB.products.map(function(p){
     var avgCost=getAvgCost(p['SKU ID']);
@@ -689,7 +733,7 @@ function renderPerformance() {
   function perfTh(label,col,align){
     var active=sortState.perf.col===col;
     var arr=active?(sortState.perf.dir===1?'&#9650;':'&#9660;'):'&#8645;';
-    return '<th class="sort-th" onclick="perfSort(\'' +col+ '\')'+'" style="text-align:'+(align||'right')+(active?';color:var(--accent)':'')+'">'+''+label+'<span class="sort-arr'+(active?' on':'')+'">'+''+arr+'</span></th>';
+    return '<th class="sort-th" onclick="perfSort(&apos;'+col+'&apos;)" style="text-align:'+(align||'right')+(active?';color:var(--accent)':'')+'">'+''+label+'<span class="sort-arr'+(active?' on':'')+'">'+''+arr+'</span></th>';
   }
   var thead='<tr>'+perfTh('SKU','name','left')+perfTh('90d rate','r90')+perfTh('Total sold','total')+perfTh('Avg cost','cost')+perfTh('Avg price','price')+perfTh('Margin','margin')+'</tr>';
   document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead>'+thead+'</thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
@@ -699,7 +743,6 @@ function perfSort(col){
   else{sortState.perf.col=col;sortState.perf.dir=1;}
   renderPerformance();
 }
-
 function renderProductList() {
   var bf=document.getElementById('pf-brand').value;
   var sf=document.getElementById('pf-status').value;
