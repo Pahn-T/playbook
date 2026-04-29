@@ -96,8 +96,12 @@ textarea { resize: vertical; min-height: 70px; }
 .batch-line { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; position: relative; }
 .remove-line { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-faint); font-size: 18px; line-height: 1; padding: 2px 6px; }
 .remove-line:hover { color: var(--danger); }
-.weeks-bar { display: flex; align-items: center; gap: 8px; }
-.weeks-num { font-size: 12px; color: var(--text-muted); min-width: 55px; }
+.months-bar { display: flex; align-items: center; gap: 8px; }
+.months-num { font-size: 12px; color: var(--text-muted); min-width: 45px; }
+.sort-th { cursor: pointer; user-select: none; white-space: nowrap; }
+.sort-th:hover { color: var(--accent); }
+.sort-arrow { margin-left: 4px; opacity: 0.5; font-size: 10px; }
+.sort-arrow.active { opacity: 1; color: var(--accent); }
 .alert-badge { margin-left: auto; background: var(--danger); color: white; font-size: 10px; padding: 1px 6px; border-radius: 99px; display: none; }
 </style>
 
@@ -368,6 +372,7 @@ textarea { resize: vertical; min-height: 70px; }
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyps-dvzmS0Gy0IOgeK-kxfhO5DAVVp6y75eS_U_Y4DCduXpKro3F9752BFnbAcrVCCFw/exec';
 var DB = { brands:[], products:[], batches:[], inventory:[], sales:[], consignment:[] };
 var currentPage = 'dashboard';
+var sortState = { inv: { col: null, dir: 1 }, perf: { col: null, dir: 1 } };
 
 function toast(msg) {
   var t = document.getElementById('toast');
@@ -644,34 +649,62 @@ function renderInventory() {
   var prods=DB.products.filter(function(p){ return p['Status']==='Active'; });
   if(bf) prods=prods.filter(function(p){ return p['Brand ID']===bf; });
   var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
-  var lm={ok:'Healthy',warning:'6-wk alert',danger:'4-wk alert',out:'Out of stock'};
-  var rows=prods.map(function(p){
+  var lm={ok:'Healthy',warning:'2-mo alert',danger:'1-mo alert',out:'Out of stock'};
+  var rowData=prods.map(function(p){
     var brand=DB.brands.find(function(b){return b['Brand ID']===p['Brand ID'];});
     var stock=getStock(p['SKU ID']); var con=getConsignStock(p['SKU ID']);
     var r30=getSellThrough(p['SKU ID'],30); var r90=getSellThrough(p['SKU ID'],90);
-    var weeks=getWeeksLeft(p['SKU ID']); var st=getStatus(weeks);
-    if(sf && st!==sf) return '';
-    var wStr=weeks===null?'—':weeks<=0?'0w':weeks.toFixed(1)+'w';
-    var barColor=st==='ok'?'progress-green':st==='warning'?'progress-amber':'progress-red';
-    var barWidth=weeks!==null&&weeks>0?Math.min(weeks/12*100,100):0;
+    var weeks=getWeeksLeft(p['SKU ID']); var months=weeks!==null?weeks/4.33:null;
+    var st=getStatus(weeks);
+    return {p:p,brand:brand,stock:stock,con:con,r30:r30,r90:r90,months:months,st:st};
+  }).filter(function(d){ return !sf||d.st===sf; });
+  var sc=sortState.inv.col,sd=sortState.inv.dir;
+  if(sc) rowData.sort(function(a,b){
+    var av,bv;
+    if(sc==='name'){av=a.p['SKU Name'];bv=b.p['SKU Name'];}
+    else if(sc==='brand'){av=(a.brand?a.brand['Brand Name']:'');bv=(b.brand?b.brand['Brand Name']:'');}
+    else if(sc==='stock'){av=a.stock;bv=b.stock;}
+    else if(sc==='r30'){av=a.r30;bv=b.r30;}
+    else if(sc==='r90'){av=a.r90;bv=b.r90;}
+    else if(sc==='months'){av=a.months===null?-1:a.months;bv=b.months===null?-1:b.months;}
+    if(typeof av==='string') return av.localeCompare(bv)*sd;
+    return (av-bv)*sd;
+  });
+  function th(label,col,align){
+    var active=sortState.inv.col===col;
+    var arrow=active?(sortState.inv.dir===1?'&#9650;':'&#9660;'):'&#8645;';
+    return '<th class="sort-th" onclick="invSort(''+col+'')" style="text-align:'+(align||'right')+'">'+label+'<span class="sort-arrow'+(active?' active':'')+'" style="margin-left:4px;opacity:'+(active?'1':'0.4')+';font-size:10px;color:'+(active?'var(--accent)':'inherit')+'">'+arrow+'</span></th>';
+  }
+  var rows=rowData.map(function(d){
+    var mStr=d.months===null?'—':d.months<=0?'0mo':d.months.toFixed(1)+'mo';
+    var barColor=d.st==='ok'?'progress-green':d.st==='warning'?'progress-amber':'progress-red';
+    var barWidth=d.months!==null&&d.months>0?Math.min(d.months/6*100,100):0;
     return '<tr>'+
-      '<td><strong>'+p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+p['SKU ID']+'</span></td>'+
-      '<td>'+(brand?brand['Brand Name']:'')+'</td>'+
-      '<td style="text-align:right">'+fmt(stock)+'</td>'+
-      '<td style="text-align:right">'+(con>0?fmt(con):'—')+'</td>'+
-      '<td style="text-align:right">'+r30.toFixed(1)+'</td>'+
-      '<td style="text-align:right">'+r90.toFixed(1)+'</td>'+
-      '<td><div class="weeks-bar"><span class="weeks-num">'+wStr+'</span>'+
-        (weeks!==null&&weeks>0?'<div class="progress-wrap" style="flex:1"><div class="progress-bar '+barColor+'" style="width:'+barWidth+'%"></div></div>':'')+
+      '<td><strong>'+d.p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+d.p['SKU ID']+'</span></td>'+
+      '<td>'+(d.brand?d.brand['Brand Name']:'')+'</td>'+
+      '<td style="text-align:right">'+fmt(d.stock)+'</td>'+
+      '<td style="text-align:right">'+(d.con>0?fmt(d.con):'—')+'</td>'+
+      '<td style="text-align:right">'+d.r30.toFixed(1)+'</td>'+
+      '<td style="text-align:right">'+d.r90.toFixed(1)+'</td>'+
+      '<td><div class="months-bar"><span class="months-num">'+mStr+'</span>'+
+        (d.months!==null&&d.months>0?'<div class="progress-wrap" style="flex:1"><div class="progress-bar '+barColor+'" style="width:'+barWidth+'%"></div></div>':'')+
       '</div></td>'+
-      '<td><span class="badge '+bm[st]+'">'+lm[st]+'</span></td>'+
+      '<td><span class="badge '+bm[d.st]+'">'+lm[d.st]+'</span></td>'+
     '</tr>';
   }).join('');
-  document.getElementById('inv-table').innerHTML='<table><thead><tr><th>SKU</th><th>Brand</th><th style="text-align:right">In stock</th><th style="text-align:right">Consignment</th><th style="text-align:right">30d/mo</th><th style="text-align:right">90d/mo</th><th>Weeks left</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="empty-state">No products found</td></tr>')+'</tbody></table>';
+  var thead='<tr>'+th('SKU','name','left')+th('Brand','brand','left')+th('In stock','stock')+
+    '<th style="text-align:right">Consignment</th>'+th('30d/mo','r30')+th('90d/mo','r90')+
+    th('Months left','months')+'<th>Status</th></tr>';
+  document.getElementById('inv-table').innerHTML='<table><thead>'+thead+'</thead><tbody>'+(rows||'<tr><td colspan="8" class="empty-state">No products found</td></tr>')+'</tbody></table>';
+}
+function invSort(col){
+  if(sortState.inv.col===col) sortState.inv.dir*=-1;
+  else{sortState.inv.col=col;sortState.inv.dir=1;}
+  renderInventory();
 }
 
 function renderPerformance() {
-  var rows=DB.products.map(function(p){
+  var rowData=DB.products.map(function(p){
     var avgCost=getAvgCost(p['SKU ID']);
     var sales=DB.sales.filter(function(s){return s['SKU ID']===p['SKU ID'];});
     var totalRev=sales.reduce(function(s,r){return s+(Number(r['Units Sold'])||0)*(Number(r['Sale Price (THB)'])||0);},0);
@@ -679,16 +712,42 @@ function renderPerformance() {
     var avgPrice=totalUnits?totalRev/totalUnits:0;
     var margin=avgPrice&&avgCost?((avgPrice-avgCost)/avgPrice*100):null;
     var r90=getSellThrough(p['SKU ID'],90);
+    return {p:p,r90:r90,totalUnits:totalUnits,avgCost:avgCost,avgPrice:avgPrice,margin:margin};
+  });
+  var sc=sortState.perf.col,sd=sortState.perf.dir;
+  if(sc) rowData.sort(function(a,b){
+    var av,bv;
+    if(sc==='name'){av=a.p['SKU Name'];bv=b.p['SKU Name'];}
+    else if(sc==='r90'){av=a.r90;bv=b.r90;}
+    else if(sc==='total'){av=a.totalUnits;bv=b.totalUnits;}
+    else if(sc==='cost'){av=a.avgCost;bv=b.avgCost;}
+    else if(sc==='price'){av=a.avgPrice;bv=b.avgPrice;}
+    else if(sc==='margin'){av=a.margin===null?-999:a.margin;bv=b.margin===null?-999:b.margin;}
+    if(typeof av==='string') return av.localeCompare(bv)*sd;
+    return (av-bv)*sd;
+  });
+  function th(label,col,align){
+    var active=sortState.perf.col===col;
+    var arrow=active?(sortState.perf.dir===1?'&#9650;':'&#9660;'):'&#8645;';
+    return '<th class="sort-th" onclick="perfSort(''+col+'')" style="text-align:'+(align||'right')+'">'+label+'<span class="sort-arrow'+(active?' active':'')+'" style="margin-left:4px;opacity:'+(active?'1':'0.4')+';font-size:10px;color:'+(active?'var(--accent)':'inherit')+'">'+arrow+'</span></th>';
+  }
+  var rows=rowData.map(function(d){
     return '<tr>'+
-      '<td><strong>'+p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+p['SKU ID']+'</span></td>'+
-      '<td style="text-align:right">'+r90.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
-      '<td style="text-align:right">'+fmt(totalUnits)+'</td>'+
-      '<td style="text-align:right">'+(avgCost?'฿'+fmt(avgCost,2):'—')+'</td>'+
-      '<td style="text-align:right">'+(avgPrice?'฿'+fmt(avgPrice,2):'—')+'</td>'+
-      '<td style="text-align:right">'+(margin!==null?margin.toFixed(1)+'%':'—')+'</td>'+
+      '<td><strong>'+d.p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+d.p['SKU ID']+'</span></td>'+
+      '<td style="text-align:right">'+d.r90.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
+      '<td style="text-align:right">'+fmt(d.totalUnits)+'</td>'+
+      '<td style="text-align:right">'+(d.avgCost?'฿'+fmt(d.avgCost,2):'—')+'</td>'+
+      '<td style="text-align:right">'+(d.avgPrice?'฿'+fmt(d.avgPrice,2):'—')+'</td>'+
+      '<td style="text-align:right">'+(d.margin!==null?d.margin.toFixed(1)+'%':'—')+'</td>'+
     '</tr>';
   }).join('');
-  document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead><tr><th>SKU</th><th style="text-align:right">90d rate</th><th style="text-align:right">Total sold</th><th style="text-align:right">Avg cost</th><th style="text-align:right">Avg price</th><th style="text-align:right">Margin</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
+  var thead='<tr>'+th('SKU','name','left')+th('90d rate','r90')+th('Total sold','total')+th('Avg cost','cost')+th('Avg price','price')+th('Margin','margin')+'</tr>';
+  document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead>'+thead+'</thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
+}
+function perfSort(col){
+  if(sortState.perf.col===col) sortState.perf.dir*=-1;
+  else{sortState.perf.col=col;sortState.perf.dir=1;}
+  renderPerformance();
 }
 
 function renderProductList() {
