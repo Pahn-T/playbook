@@ -903,16 +903,18 @@ function submitSaleBatch() {
     if(units>0) toSave.push([uid('SALE'),date,sku,channel,units,price,'','']);
   });
   if(!toSave.length){ toast('No valid entries'); return; }
-  var saved=0;
-  toSave.forEach(function(row){
-    apiAppend('Sales',row,function(){
-      saved++;
-      if(saved===toSave.length){
-        toSave.forEach(function(r){ apiUpdateInventory(r[2], -r[4]); });
-        toast('All sales saved'); document.getElementById('batch-sale-lines').innerHTML=''; loadAll();
-      }
-    });
-  });
+  toast('Saving '+toSave.length+' items...');
+  function saveNext(idx){
+    if(idx>=toSave.length){
+      toSave.forEach(function(r){ apiUpdateInventory(r[2],-r[4]); });
+      toast('All sales saved');
+      document.getElementById('batch-sale-lines').innerHTML='';
+      loadAll();
+      return;
+    }
+    apiAppend('Sales',toSave[idx],function(){ saveNext(idx+1); });
+  }
+  saveNext(0);
 }
 
 function submitConsignSend() {
