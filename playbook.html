@@ -845,16 +845,16 @@ function submitBatch() {
     var landed=thbCost+shipPerUnit;
     rows.push([batchId,date,l.sku,l.ordered,l.fCost,fx,thbCost.toFixed(2),shipPerUnit.toFixed(2),landed.toFixed(2),'']);
   });
-    var saved=0;
-  rows.forEach(function(row){
-    apiAppend('Batches', row, function(){
-      saved++;
-      if(saved===rows.length){
-        rows.forEach(function(r){ apiUpdateInventory(r[2], r[3]); });
-        toast('Batch saved'); clearBatchForm(); loadAll();
-      }
-    });
-  });
+    toast('Saving '+rows.length+' item'+(rows.length>1?'s':'')+'...');
+  function saveNextBatch(idx){
+    if(idx>=rows.length){
+      rows.forEach(function(r){ apiUpdateInventory(r[2], r[3]); });
+      toast('Batch saved'); clearBatchForm(); loadAll();
+      return;
+    }
+    apiAppend('Batches', rows[idx], function(){ saveNextBatch(idx+1); });
+  }
+  saveNextBatch(0);
 }
 
 function addSaleLine() {
