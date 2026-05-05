@@ -515,7 +515,7 @@ function getAvgCost(skuId) {
   var totalCost = 0, totalUnits = 0;
   batches.forEach(function(b){
     var u = Number(b['Units Ordered']) || 0;
-    var c = Number(b['Landed Cost per Unit (THB)']) || 0;
+    var c = Number(b['Landed Cost Per Unit (THB)']) || 0;
     totalCost += u * c; totalUnits += u;
   });
   return totalUnits ? totalCost / totalUnits : 0;
