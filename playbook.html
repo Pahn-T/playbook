@@ -169,7 +169,7 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="metrics-grid" id="dash-metrics"><div class="loading"><div class="spinner"></div> Loading...</div></div>
       <div class="grid-2">
         <div class="card"><div class="card-title">Stock status by SKU</div><div class="table-wrap" id="dash-stock"></div></div>
-        <div class="card"><div class="card-title">Top sellers (90-day)</div><div id="dash-topsellers"></div></div>
+        <div class="card"><div class="card-title">Top sellers</div><div id="dash-topsellers"></div></div>
       </div>
       <div class="card"><div class="card-title">Channel breakdown (90-day)</div><div id="dash-channels"></div></div>
     </div>
@@ -594,10 +594,31 @@ function renderDashboard() {
   }).join('');
   document.getElementById('dash-stock').innerHTML='<table><thead><tr><th>SKU</th><th style="text-align:right">Stock</th><th style="text-align:right">Months left</th><th>Status</th></tr></thead><tbody>'+(stockRows||'<tr><td colspan="4" class="empty-state">No products yet</td></tr>')+'</tbody></table>';
 
-  var skuRates = DB.products.map(function(p){ return {name:p['SKU Name'],units:getSellThrough(p['SKU ID'],90)}; }).sort(function(a,b){return b.units-a.units;}).slice(0,10);
-  document.getElementById('dash-topsellers').innerHTML = skuRates.map(function(s){
-    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><span>'+s.name+'</span><span style="font-weight:500">'+s.units.toFixed(1)+'<span style="color:var(--text-faint);font-weight:400"> /mo</span></span></div>';
-  }).join('') || '<div class="empty-state">No sales data yet</div>';
+  var tsDays = window._tsDays || 90;
+  var skuRates = DB.products.map(function(p){
+    var stock = getStock(p['SKU ID']);
+    var weeks = getWeeksLeft(p['SKU ID']);
+    var months = weeks !== null ? weeks / 4.33 : null;
+    var st = getStatus(weeks);
+    return {name:p['SKU Name'],skuId:p['SKU ID'],units:getSellThrough(p['SKU ID'],tsDays),stock:stock,months:months,st:st};
+  }).sort(function(a,b){return b.units-a.units;}).slice(0,10);
+  var bm={ok:'badge-success',warning:'badge-warning',danger:'badge-danger',out:'badge-neutral'};
+  var lm={ok:'Healthy',warning:'2-mo alert',danger:'1-mo alert',out:'Out of stock'};
+  var tsButtons=['7','30','60','90'].map(function(d){
+    var active=(tsDays===Number(d));
+    return '<button onclick="setTopSellerDays('+d+')" style="padding:3px 10px;font-size:12px;border-radius:4px;border:0.5px solid '+(active?'var(--accent)':'var(--border-md)')+';background:'+(active?'var(--accent)':'var(--surface)')+';color:'+(active?'white':'var(--text-muted)')+';cursor:pointer;font-family:inherit;">'+d+'d</button>';
+  }).join('');
+  document.getElementById('dash-topsellers').innerHTML =
+    '<div style="display:flex;gap:6px;margin-bottom:0.75rem;">'+tsButtons+'</div>'+
+    (skuRates.map(function(s){
+      var mStr = s.months===null?'--':s.months<=0?'OOS':s.months.toFixed(1)+'mo';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;gap:8px;">'+
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.name+'</span>'+
+        '<span style="font-weight:500;white-space:nowrap;">'+s.units.toFixed(1)+'<span style="color:var(--text-faint);font-weight:400"> /mo</span></span>'+
+        '<span style="white-space:nowrap;min-width:55px;text-align:right;color:var(--text-muted);font-size:12px;">'+fmt(s.stock)+' left</span>'+
+        '<span class="badge '+bm[s.st]+'" style="min-width:60px;text-align:center;">'+lm[s.st]+'</span>'+
+      '</div>';
+    }).join('') || '<div class="empty-state">No sales data yet</div>');
 
   var cutoff90=new Date(); cutoff90.setDate(cutoff90.getDate()-90);
   var channels={};
@@ -1001,6 +1022,11 @@ function cancelSale(saleId, skuId, units) {
       toast('Error: ' + (data && data.message ? data.message : 'Unknown error'));
     }
   });
+}
+
+function setTopSellerDays(days) {
+  window._tsDays = days;
+  renderDashboard();
 }
 
 // Init
