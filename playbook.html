@@ -927,7 +927,23 @@ function submitSaleBatch() {
     if(units>0) toSave.push([uid('SALE'),date,sku,channel,units,price,'','']);
   });
   if(!toSave.length){ toast('No valid entries'); return; }
-  toast('Saving '+toSave.length+' items...');
+  // OOS soft warning check
+  var oosWarnings = [];
+  toSave.forEach(function(row){
+    var skuId = row[2]; var units = row[4];
+    var stock = getStock(skuId);
+    if(stock <= 0){
+      var prod = DB.products.find(function(p){return p['SKU ID']===skuId;});
+      oosWarnings.push((prod?prod['SKU Name']:skuId)+' is out of stock');
+    } else if(units > stock){
+      var prod = DB.products.find(function(p){return p['SKU ID']===skuId;});
+      oosWarnings.push((prod?prod['SKU Name']:skuId)+': only '+stock+' in stock, logging '+units);
+    }
+  });
+  if(oosWarnings.length > 0){
+    if(!confirm('Stock warning:\n\n'+oosWarnings.join('\n')+'\n\nSave anyway?')) return;
+  }
+  toast('Saving '+toSave.length+' item'+(toSave.length>1?'s':'')+'...');
   function saveNext(idx){
     if(idx>=toSave.length){
       toSave.forEach(function(r){ apiUpdateInventory(r[2],-r[4]); });
