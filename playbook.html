@@ -103,6 +103,12 @@ textarea { resize: vertical; min-height: 70px; }
 .sort-th:hover { color: var(--accent); }
 .sort-arr { margin-left: 3px; font-size: 10px; opacity: 0.4; }
 .sort-arr.on { opacity: 1; color: var(--accent); }
+.badge-ch-shopee { background: #FFF0E6; color: #C75B00; border: 0.5px solid #F5A66D; }
+.badge-ch-lazada { background: #E6EEFF; color: #1A44C8; border: 0.5px solid #7A9DF5; }
+.badge-ch-line { background: #E6F8EC; color: #1A7A3A; border: 0.5px solid #6AC488; }
+.badge-ch-wholesale { background: #F3E6FF; color: #7A1AC8; border: 0.5px solid #C07AF5; }
+.badge-ch-consignment { background: #FFF8E6; color: #B8860B; border: 0.5px solid #E6C55A; }
+.badge-ch-other { background: #F0F0F0; color: #555555; border: 0.5px solid #AAAAAA; }
 </style>
 
 <div id="toast"></div>
@@ -1140,6 +1146,11 @@ function renderInventoryCharts() {
 
   drawChart('chart-inv-sell', 'chart-inv-sell-legend', sellByBrand);
   drawChart('chart-inv-cost', 'chart-inv-cost-legend', costByBrand);
+}
+
+function chBadgeClass(ch) {
+  var m = {Shopee:'badge-ch-shopee',Lazada:'badge-ch-lazada',Line:'badge-ch-line',Wholesale:'badge-ch-wholesale',Consignment:'badge-ch-consignment'};
+  return m[ch] || 'badge-ch-other';
 }
 
 // Init
