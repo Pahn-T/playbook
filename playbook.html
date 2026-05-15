@@ -838,9 +838,17 @@ function renderSalesHistory() {
     var prod=DB.products.find(function(p){return p['SKU ID']===s['SKU ID'];});
     var cancelled=(s['Notes']||'').toString().includes('[Cancelled]');
     var style=cancelled?'opacity:0.4;text-decoration:line-through;':'';
+    var ch=s['Channel']||'';
     var cancelBtn=cancelled?'<span style="font-size:11px;color:var(--text-faint)">Cancelled</span>':
       '<button onclick="cancelSale(&apos;'+s['Sale ID']+'&apos;,&apos;'+s['SKU ID']+'&apos;,'+Number(s['Units Sold'])+')" style="font-size:11px;padding:2px 8px;border-radius:4px;border:0.5px solid var(--border-md);background:var(--surface);cursor:pointer;color:var(--danger)">Cancel</button>';
-    return '<tr style="'+style+'"><td>'+fmtDate(s['Date'])+'</td><td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td><td><span class="badge "+chBadgeClass(s['Channel'])+'">'+s['Channel']+'</span></td><td style="text-align:right">'+fmt(s['Units Sold'])+'</td><td style="text-align:right">'+cancelBtn+'</td></tr>';
+    var row='<tr style="'+style+'">';
+    row+='<td>'+fmtDate(s['Date'])+'</td>';
+    row+='<td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td>';
+    row+='<td><span class="badge '+chBadgeClass(ch)+'">'+ch+'</span></td>';
+    row+='<td style="text-align:right">'+fmt(s['Units Sold'])+'</td>';
+    row+='<td style="text-align:right">'+cancelBtn+'</td>';
+    row+='</tr>';
+    return row;
   }).join('');
   document.getElementById('sales-history').innerHTML='<table><thead><tr><th>Date</th><th>SKU</th><th>Channel</th><th style="text-align:right">Units</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="empty-state">No sales yet</td></tr>')+'</tbody></table>';
 }
