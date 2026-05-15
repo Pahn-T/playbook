@@ -834,7 +834,7 @@ function renderSalesHistory() {
     var style=cancelled?'opacity:0.4;text-decoration:line-through;':'';
     var cancelBtn=cancelled?'<span style="font-size:11px;color:var(--text-faint)">Cancelled</span>':
       '<button onclick="cancelSale(&apos;'+s['Sale ID']+'&apos;,&apos;'+s['SKU ID']+'&apos;,'+Number(s['Units Sold'])+')" style="font-size:11px;padding:2px 8px;border-radius:4px;border:0.5px solid var(--border-md);background:var(--surface);cursor:pointer;color:var(--danger)">Cancel</button>';
-    return '<tr style="'+style+'"><td>'+fmtDate(s['Date'])+'</td><td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td><td><span class="badge badge-info">'+s['Channel']+'</span></td><td style="text-align:right">'+fmt(s['Units Sold'])+'</td><td style="text-align:right">'+cancelBtn+'</td></tr>';
+    return '<tr style="'+style+'"><td>'+fmtDate(s['Date'])+'</td><td>'+(prod?prod['SKU Name']:s['SKU ID'])+'</td><td><span class="badge "+chBadgeClass(s['Channel'])+'">'+s['Channel']+'</span></td><td style="text-align:right">'+fmt(s['Units Sold'])+'</td><td style="text-align:right">'+cancelBtn+'</td></tr>';
   }).join('');
   document.getElementById('sales-history').innerHTML='<table><thead><tr><th>Date</th><th>SKU</th><th>Channel</th><th style="text-align:right">Units</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="empty-state">No sales yet</td></tr>')+'</tbody></table>';
 }
