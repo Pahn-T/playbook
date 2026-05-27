@@ -785,11 +785,26 @@ function renderProductList() {
 
 function renderAvgCosts() {
   var rows=DB.products.map(function(p){
-    var avg=getAvgCost(p['SKU ID']);
+    var storedAvg=Number(p['Avg Landed Cost (THB)'])||0;
+    var avg=storedAvg||getAvgCost(p['SKU ID']);
     var nb=DB.batches.filter(function(b){return b['SKU ID']===p['SKU ID'];}).length;
-    return '<tr><td>'+p['SKU Name']+'</td><td>'+p['SKU ID']+'</td><td style="text-align:right">'+nb+'</td><td style="text-align:right">'+(avg?'฿'+fmt(avg,2):'—')+'</td></tr>';
+    var margin=avg&&getSellPrice(p['SKU ID'])?(((getSellPrice(p['SKU ID'])-avg)/getSellPrice(p['SKU ID']))*100):null;
+    return '<tr>'+
+      '<td>'+p['SKU Name']+'</td>'+
+      '<td>'+p['SKU ID']+'</td>'+
+      '<td style="text-align:right">'+nb+'</td>'+
+      '<td style="text-align:right">'+(avg?'฿'+fmt(avg,2):'—')+'</td>'+
+      '<td style="text-align:right">'+(getSellPrice(p['SKU ID'])?'฿'+fmt(getSellPrice(p['SKU ID']),2):'—')+'</td>'+
+      '<td style="text-align:right">'+(margin!==null?margin.toFixed(1)+'%':'—')+'</td>'+
+    '</tr>';
   }).join('');
-  document.getElementById('avg-costs').innerHTML='<table><thead><tr><th>SKU</th><th>SKU ID</th><th style="text-align:right">Batches</th><th style="text-align:right">Avg landed cost</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="empty-state">No cost data yet</td></tr>')+'</tbody></table>';
+  document.getElementById('avg-costs').innerHTML='<table><thead><tr>'+
+    '<th>SKU</th><th>SKU ID</th>'+
+    '<th style="text-align:right">Batches</th>'+
+    '<th style="text-align:right">Avg landed cost</th>'+
+    '<th style="text-align:right">Sell price</th>'+
+    '<th style="text-align:right">Margin</th>'+
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No cost data yet</td></tr>')+'</tbody></table>';
 }
 
 function renderBatchHistory() {
@@ -902,6 +917,7 @@ function submitBatch() {
   function saveNextBatch(idx){
     if(idx>=rows.length){
       rows.forEach(function(r){ apiUpdateInventory(r[2], r[3]); });
+      apiRefreshAvgCosts();
       toast('Batch saved'); clearBatchForm(); loadAll();
       return;
     }
@@ -1159,6 +1175,20 @@ function renderInventoryCharts() {
 function chBadgeClass(ch) {
   var m = {Shopee:'badge-ch-shopee',Lazada:'badge-ch-lazada',Line:'badge-ch-line',Wholesale:'badge-ch-wholesale',Consignment:'badge-ch-consignment'};
   return m[ch] || 'badge-ch-other';
+}
+
+function apiRefreshAvgCosts() {
+  var cbName = 'cb_avgcost_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    var s = document.getElementById('jsonp_' + cbName);
+    if(s) s.remove();
+  };
+  var script = document.createElement('script');
+  script.id = 'jsonp_' + cbName;
+  script.src = SCRIPT_URL + '?action=refreshAvgCosts&callback=' + cbName;
+  script.onerror = function(){ delete window[cbName]; };
+  document.head.appendChild(script);
 }
 
 // Init
