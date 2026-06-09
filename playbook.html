@@ -733,13 +733,15 @@ function renderPerformance() {
     var totalUnits=sales.reduce(function(s,r){return s+(Number(r['Units Sold'])||0);},0);
     var avgPrice=totalUnits?totalRev/totalUnits:0;
     var margin=avgPrice&&avgCost?((avgPrice-avgCost)/avgPrice*100):null;
-    var r90=getSellThrough(p['SKU ID'],90);
-    return {p:p,r90:r90,totalUnits:totalUnits,avgCost:avgCost,avgPrice:avgPrice,margin:margin};
+    var r30=getSellThrough(p['SKU ID'],30);var r60=getSellThrough(p['SKU ID'],60);var r90=getSellThrough(p['SKU ID'],90);
+    return {p:p,r30:r30,r60:r60,r90:r90,totalUnits:totalUnits,avgCost:avgCost,avgPrice:avgPrice,margin:margin};
   });
   var sc=sortState.perf.col,sd=sortState.perf.dir;
   if(sc) rowData.sort(function(a,b){
     var av,bv;
     if(sc==='name'){av=a.p['SKU Name'];bv=b.p['SKU Name'];}
+    else if(sc==='r30'){av=a.r30;bv=b.r30;}
+    else if(sc==='r60'){av=a.r60;bv=b.r60;}
     else if(sc==='r90'){av=a.r90;bv=b.r90;}
     else if(sc==='total'){av=a.totalUnits;bv=b.totalUnits;}
     else if(sc==='cost'){av=a.avgCost;bv=b.avgCost;}
@@ -750,6 +752,8 @@ function renderPerformance() {
   });
   var rows=rowData.map(function(d){
     return '<tr><td><strong>'+d.p['SKU Name']+'</strong><br><span style="font-size:11px;color:var(--text-faint)">'+d.p['SKU ID']+'</span></td>'+
+      '<td style="text-align:right">'+d.r30.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
+      '<td style="text-align:right">'+d.r60.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
       '<td style="text-align:right">'+d.r90.toFixed(1)+' <span style="color:var(--text-faint);font-size:11px">/mo</span></td>'+
       '<td style="text-align:right">'+fmt(d.totalUnits)+'</td>'+
       '<td style="text-align:right">'+(d.avgCost?'฿'+fmt(d.avgCost,2):'--')+'</td>'+
@@ -761,8 +765,8 @@ function renderPerformance() {
     var arr=active?(sortState.perf.dir===1?'&#9650;':'&#9660;'):'&#8645;';
     return '<th class="sort-th" onclick="perfSort(&apos;'+col+'&apos;)" style="text-align:'+(align||'right')+(active?';color:var(--accent)':'')+'">'+''+label+'<span class="sort-arr'+(active?' on':'')+'">'+''+arr+'</span></th>';
   }
-  var thead='<tr>'+perfTh('SKU','name','left')+perfTh('90d rate','r90')+perfTh('Total sold','total')+perfTh('Avg cost','cost')+perfTh('Avg price','price')+perfTh('Margin','margin')+'</tr>';
-  document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead>'+thead+'</thead><tbody>'+(rows||'<tr><td colspan="6" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
+  var thead='<tr>'+perfTh('SKU','name','left')+perfTh('30d rate','r30')+perfTh('60d rate','r60')+perfTh('90d rate','r90')+perfTh('Total sold','total')+perfTh('Avg cost','cost')+perfTh('Avg price','price')+perfTh('Margin','margin')+'</tr>';
+  document.getElementById('perf-content').innerHTML='<div class="card"><div class="table-wrap"><table><thead>'+thead+'</thead><tbody>'+(rows||'<tr><td colspan="8" class="empty-state">No data yet</td></tr>')+'</tbody></table></div></div>';
 }
 function perfSort(col){
   if(sortState.perf.col===col)sortState.perf.dir*=-1;
