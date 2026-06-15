@@ -109,6 +109,7 @@ textarea { resize: vertical; min-height: 70px; }
 .badge-ch-wholesale { background: #F3E6FF; color: #7A1AC8; border: 0.5px solid #C07AF5; }
 .badge-ch-consignment { background: #FFF8E6; color: #B8860B; border: 0.5px solid #E6C55A; }
 .badge-ch-other { background: #F0F0F0; color: #555555; border: 0.5px solid #AAAAAA; }
+.badge-ch-tiktok { background: #000000; color: #FFFFFF; border: 0.5px solid #333333; }
 </style>
 
 <div id="toast"></div>
@@ -286,7 +287,7 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="card" style="max-width:700px;">
           <div class="form-grid" style="margin-bottom:1rem;">
             <div class="form-group"><label>Date</label><input type="date" id="bs-date"/></div>
-            <div class="form-group"><label>Channel</label><select id="bs-channel"><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option><option>Other</option></select></div>
+            <div class="form-group"><label>Channel</label><select id="bs-channel"><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option><option>TikTok</option><option>Other</option></select></div>
           </div>
           <div id="batch-sale-lines"></div>
           <button class="btn btn-sm" onclick="addSaleLine()" style="margin-bottom:1rem;">+ Add SKU</button>
@@ -298,7 +299,7 @@ textarea { resize: vertical; min-height: 70px; }
       </div>
       <div id="sales-tc-1" class="tab-content">
         <div style="display:flex;gap:8px;margin-bottom:1rem;">
-          <select id="sf-channel" onchange="renderSalesHistory()" style="width:160px;"><option value="">All channels</option><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option></select>
+          <select id="sf-channel" onchange="renderSalesHistory()" style="width:160px;"><option value="">All channels</option><option>Shopee</option><option>Lazada</option><option>Line</option><option>Wholesale</option><option>Consignment</option><option>TikTok</option></select>
           <select id="sf-sku" onchange="renderSalesHistory()" style="width:200px;"><option value="">All SKUs</option></select>
         </div>
         <div class="card"><div class="table-wrap" id="sales-history"></div></div>
@@ -1177,7 +1178,7 @@ function renderInventoryCharts() {
 }
 
 function chBadgeClass(ch) {
-  var m = {Shopee:'badge-ch-shopee',Lazada:'badge-ch-lazada',Line:'badge-ch-line',Wholesale:'badge-ch-wholesale',Consignment:'badge-ch-consignment'};
+  var m = {Shopee:'badge-ch-shopee',Lazada:'badge-ch-lazada',Line:'badge-ch-line',Wholesale:'badge-ch-wholesale',Consignment:'badge-ch-consignment',TikTok:'badge-ch-tiktok'};
   return m[ch] || 'badge-ch-other';
 }
 
