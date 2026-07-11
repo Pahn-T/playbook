@@ -954,8 +954,8 @@ function submitSaleSingle() {
   var buyer=document.getElementById('s-buyer').value;
   var notes=document.getElementById('s-notes').value;
   if(!date||!sku||!units){ toast('Please fill in date, SKU and units'); return; }
-  apiAppend('Sales',[uid('SALE'),date,sku,channel,units,price,buyer,notes],function(){
-    apiUpdateInventory(sku, -units);
+  apiLogSale([uid('SALE'),date,sku,channel,units,price,buyer,notes],function(data){
+    if(data && data.status !== 'success'){ toast('Error: sale not saved, please re-enter'); return; }
     toast('Sale saved');
     document.getElementById('s-units').value='';
     document.getElementById('s-price').value='';
@@ -996,13 +996,15 @@ function submitSaleBatch() {
   toast('Saving '+toSave.length+' item'+(toSave.length>1?'s':'')+'...');
   function saveNext(idx){
     if(idx>=toSave.length){
-      toSave.forEach(function(r){ apiUpdateInventory(r[2],-r[4]); });
       toast('All sales saved');
       document.getElementById('batch-sale-lines').innerHTML='';
       loadAll();
       return;
     }
-    apiAppend('Sales',toSave[idx],function(){ saveNext(idx+1); });
+    apiLogSale(toSave[idx],function(data){
+      if(data && data.status !== 'success'){ toast('Error saving '+toSave[idx][2]+', re-check'); }
+      saveNext(idx+1);
+    });
   }
   saveNext(0);
 }
@@ -1048,6 +1050,21 @@ function submitProduct() {
   });
 }
 
+function apiLogSale(row, cb) {
+  var cbName = 'cb_logsale_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+  window[cbName] = function(data) {
+    delete window[cbName];
+    var s = document.getElementById('jsonp_' + cbName);
+    if(s) s.remove();
+    if(cb) cb(data);
+  };
+  var script = document.createElement('script');
+  script.id = 'jsonp_' + cbName;
+  script.src = SCRIPT_URL + '?action=logSale&row=' + encodeURIComponent(JSON.stringify(row)) + '&callback=' + cbName;
+  script.onerror = function(){ delete window[cbName]; toast('Error saving sale'); };
+  document.head.appendChild(script);
+}
+
 function apiUpdateInventory(skuId, delta) {
   var cbName = 'cb_inv_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
   window[cbName] = function(data) {
@@ -1072,7 +1089,7 @@ function apiCancelSale(saleId, skuId, units, cb) {
   };
   var script = document.createElement('script');
   script.id = 'jsonp_' + cbName;
-  script.src = SCRIPT_URL + '?action=cancelSale&saleId=' + encodeURIComponent(saleId) + '&callback=' + cbName;
+  script.src = SCRIPT_URL + '?action=cancelSaleAtomic&saleId=' + encodeURIComponent(saleId) + '&skuId=' + encodeURIComponent(skuId) + '&units=' + units + '&callback=' + cbName;
   script.onerror = function(){ delete window[cbName]; toast('Error cancelling sale'); };
   document.head.appendChild(script);
 }
@@ -1081,7 +1098,6 @@ function cancelSale(saleId, skuId, units) {
   if(!confirm('Cancel this sale? ' + units + ' unit(s) will be returned to stock.')) return;
   apiCancelSale(saleId, skuId, units, function(data) {
     if(data && data.status === 'success') {
-      apiUpdateInventory(skuId, units);
       toast('Sale cancelled — stock restored');
       loadAll();
     } else {
